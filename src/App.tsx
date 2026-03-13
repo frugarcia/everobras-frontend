@@ -90,7 +90,7 @@ export default function App() {
                 />
                 <Route
                   path="/albaranes/nuevo"
-                  element={<DeliveryNoteFormPage />}
+                  element={<DeliveryNoteFormPage key="new" />}
                 />
                 <Route
                   path="/albaranes/:id"
@@ -98,7 +98,7 @@ export default function App() {
                 />
                 <Route
                   path="/albaranes/:id/editar"
-                  element={<DeliveryNoteFormPage />}
+                  element={<DeliveryNoteFormPage key="edit" />}
                 />
                 <Route
                   path="/mantenimiento/clientes"

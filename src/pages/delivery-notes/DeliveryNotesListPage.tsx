@@ -33,6 +33,8 @@ interface DeliveryNote {
   externalNumber: string | null;
   date: string;
   signed: boolean;
+  vehicle: { id: string; name: string; plate: string } | null;
+  vehicleText: string | null;
   project: { id: string; name: string; customer: { id: string; name: string } };
   worker: { id: string; firstName: string; lastName: string };
   lines: unknown[];
@@ -98,6 +100,14 @@ export default function DeliveryNotesListPage() {
       id: "worker",
       header: "Operario",
       cell: ({ row }) => `${row.original.worker?.firstName ?? ""} ${row.original.worker?.lastName ?? ""}`.trim(),
+    },
+    {
+      id: "vehicle",
+      header: "Vehículo",
+      cell: ({ row }) =>
+        row.original.vehicle
+          ? `${row.original.vehicle.name} (${row.original.vehicle.plate})`
+          : row.original.vehicleText ?? "-",
     },
     {
       id: "signed",

@@ -23,6 +23,8 @@ interface DeliveryNote {
   date: string;
   signed: boolean;
   imageUrl: string | null;
+  vehicle: { id: string; name: string; plate: string } | null;
+  vehicleText: string | null;
   project: { name: string; customer: { name: string } };
   worker: { firstName: string; lastName: string };
   lines: DeliveryNoteLine[];
@@ -107,6 +109,16 @@ export default function DeliveryNoteDetailPage() {
             <div className="flex justify-between">
               <span className="text-muted-foreground">Operario</span>
               <span className="font-medium">{note.worker?.firstName} {note.worker?.lastName}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Vehículo</span>
+              <span className="font-medium">
+                {note.vehicle
+                  ? `${note.vehicle.name} (${note.vehicle.plate})`
+                  : note.vehicleText
+                    ? note.vehicleText
+                    : "-"}
+              </span>
             </div>
           </CardContent>
         </Card>

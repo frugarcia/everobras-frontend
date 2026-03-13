@@ -4,7 +4,8 @@ import {authApi} from "@/lib/api";
 import {Button} from "@/components/ui/button";
 import {Input} from "@/components/ui/input";
 import {Label} from "@/components/ui/label";
-import {HardHat, ArrowLeft, Mail} from "lucide-react";
+import {ArrowLeft, Mail} from "lucide-react";
+import Logo from "@/components/Logo";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
@@ -28,19 +29,11 @@ export default function ForgotPasswordPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-linear-to-br from-slate-900 via-slate-800 to-slate-900">
-      <div className="w-full max-w-md space-y-8 rounded-2xl border border-slate-700/50 bg-slate-800/50 p-8 shadow-2xl backdrop-blur-sm">
-        {/* Logo */}
+    <div className="flex min-h-screen items-center justify-center bg-white">
+      <div className="w-full max-w-md space-y-8 rounded-2xl border border-slate-200 bg-white p-8 shadow-lg">
         <div className="flex flex-col items-center gap-3">
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-linear-to-br from-blue-500 to-purple-600 shadow-lg">
-            <HardHat className="h-8 w-8 text-white" />
-          </div>
-          <div className="text-center">
-            <h1 className="text-2xl font-bold text-white">Everobras</h1>
-            <p className="text-sm text-slate-400">
-              Recuperar contraseña
-            </p>
-          </div>
+          <Logo className="h-20 w-auto" />
+          <p className="text-sm text-slate-500">Recuperar contraseña</p>
         </div>
 
         {sent ? (
@@ -49,15 +42,16 @@ export default function ForgotPasswordPage() {
               <div className="flex h-12 w-12 items-center justify-center rounded-full bg-green-500/20">
                 <Mail className="h-6 w-6 text-green-400" />
               </div>
-              <p className="text-center text-sm text-slate-300">
-                Si existe una cuenta con el email <strong className="text-white">{email}</strong>,
-                recibirás un enlace para restablecer tu contraseña.
+              <p className="text-center text-sm text-slate-600">
+                Si existe una cuenta con el email{" "}
+                <strong className="text-slate-900">{email}</strong>, recibirás
+                un enlace para restablecer tu contraseña.
               </p>
             </div>
             <Link to="/login">
               <Button
                 variant="outline"
-                className="w-full border-slate-600 text-slate-300 hover:bg-slate-700"
+                className="w-full border-slate-300 text-slate-700 hover:bg-slate-100"
               >
                 <ArrowLeft className="mr-2 h-4 w-4" />
                 Volver al login
@@ -67,17 +61,18 @@ export default function ForgotPasswordPage() {
         ) : (
           <form onSubmit={handleSubmit} className="space-y-5">
             {error && (
-              <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
+              <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
                 {error}
               </div>
             )}
 
-            <p className="text-sm text-slate-400">
-              Introduce tu email y te enviaremos un enlace para restablecer tu contraseña.
+            <p className="text-sm text-slate-500">
+              Introduce tu email y te enviaremos un enlace para restablecer tu
+              contraseña.
             </p>
 
             <div className="space-y-2">
-              <Label htmlFor="email" className="text-slate-300">
+              <Label htmlFor="email" className="text-slate-700">
                 Email
               </Label>
               <Input
@@ -87,7 +82,7 @@ export default function ForgotPasswordPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="tu@email.com"
                 required
-                className="border-slate-600 bg-slate-700/50 text-white placeholder:text-slate-500 focus:border-blue-500 focus:ring-blue-500/20"
+                className="border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:ring-blue-500/20"
               />
             </div>
 
@@ -102,7 +97,7 @@ export default function ForgotPasswordPage() {
             <div className="text-center">
               <Link
                 to="/login"
-                className="text-sm text-slate-400 hover:text-slate-300 transition-colors"
+                className="text-sm text-slate-500 hover:text-slate-700 transition-colors"
               >
                 <ArrowLeft className="mr-1 inline h-3 w-3" />
                 Volver al login

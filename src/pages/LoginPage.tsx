@@ -4,7 +4,7 @@ import {useAuth} from "@/contexts/AuthContext";
 import {Button} from "@/components/ui/button";
 import {Input} from "@/components/ui/input";
 import {Label} from "@/components/ui/label";
-import {HardHat} from "lucide-react";
+import Logo from "@/components/Logo";
 
 export default function LoginPage() {
   const {login} = useAuth();
@@ -30,31 +30,22 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-linear-to-br from-slate-900 via-slate-800 to-slate-900">
-      <div className="w-full max-w-md space-y-8 rounded-2xl border border-slate-700/50 bg-slate-800/50 p-8 shadow-2xl backdrop-blur-sm">
-        {/* Logo */}
+    <div className="flex min-h-screen items-center justify-center bg-white">
+      <div className="w-full max-w-md space-y-8 rounded-2xl border border-slate-200 bg-white p-8 shadow-lg">
         <div className="flex flex-col items-center gap-3">
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-linear-to-br from-blue-500 to-purple-600 shadow-lg">
-            <HardHat className="h-8 w-8 text-white" />
-          </div>
-          <div className="text-center">
-            <h1 className="text-2xl font-bold text-white">Everobras</h1>
-            <p className="text-sm text-slate-400">
-              Gestión de albaranes y partes de obra
-            </p>
-          </div>
+          <Logo className="h-20 w-auto" />
         </div>
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-5">
           {error && (
-            <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
+            <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
               {error}
             </div>
           )}
 
           <div className="space-y-2">
-            <Label htmlFor="email" className="text-slate-300">
+            <Label htmlFor="email" className="text-slate-700">
               Email
             </Label>
             <Input
@@ -64,12 +55,12 @@ export default function LoginPage() {
               onChange={(e) => setEmail(e.target.value)}
               placeholder="tu@email.com"
               required
-              className="border-slate-600 bg-slate-700/50 text-white placeholder:text-slate-500 focus:border-blue-500 focus:ring-blue-500/20"
+              className="border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:ring-blue-500/20"
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="password" className="text-slate-300">
+            <Label htmlFor="password" className="text-slate-700">
               Contraseña
             </Label>
             <Input
@@ -79,7 +70,7 @@ export default function LoginPage() {
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
               required
-              className="border-slate-600 bg-slate-700/50 text-white placeholder:text-slate-500 focus:border-blue-500 focus:ring-blue-500/20"
+              className="border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:ring-blue-500/20"
             />
           </div>
 
@@ -94,7 +85,7 @@ export default function LoginPage() {
           <div className="text-center">
             <Link
               to="/forgot-password"
-              className="text-sm text-slate-400 hover:text-slate-300 transition-colors"
+              className="text-sm text-slate-500 hover:text-slate-700 transition-colors"
             >
               ¿Olvidaste tu contraseña?
             </Link>

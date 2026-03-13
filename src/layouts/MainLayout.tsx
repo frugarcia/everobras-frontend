@@ -1,4 +1,4 @@
-import { NavLink, Outlet } from "react-router-dom";
+import {NavLink, Outlet} from "react-router-dom";
 import {
   LayoutDashboard,
   FileText,
@@ -13,29 +13,30 @@ import {
   X,
   LogOut,
 } from "lucide-react";
-import { useState } from "react";
-import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
-import { useAuth } from "@/contexts/AuthContext";
+import {useState} from "react";
+import {cn} from "@/lib/utils";
+import {Button} from "@/components/ui/button";
+import {useAuth} from "@/contexts/AuthContext";
+import Logo from "@/components/Logo";
 
 const navigation = [
-  { name: "Dashboard", icon: LayoutDashboard, href: "/" },
-  { name: "Albaranes", icon: FileText, href: "/albaranes" },
+  {name: "Dashboard", icon: LayoutDashboard, href: "/"},
+  {name: "Albaranes", icon: FileText, href: "/albaranes"},
 ];
 
 const maintenance = [
-  { name: "Clientes", icon: Building2, href: "/mantenimiento/clientes" },
-  { name: "Obras", icon: HardHat, href: "/mantenimiento/obras" },
-  { name: "Materiales", icon: Package, href: "/mantenimiento/materiales" },
-  { name: "Servicios", icon: Wrench, href: "/mantenimiento/servicios" },
-  { name: "Vehículos", icon: Truck, href: "/mantenimiento/vehiculos" },
-  { name: "Operarios", icon: Users, href: "/mantenimiento/operarios" },
-  { name: "Usuarios", icon: UserCog, href: "/mantenimiento/usuarios" },
+  {name: "Clientes", icon: Building2, href: "/mantenimiento/clientes"},
+  {name: "Obras", icon: HardHat, href: "/mantenimiento/obras"},
+  {name: "Materiales", icon: Package, href: "/mantenimiento/materiales"},
+  {name: "Servicios", icon: Wrench, href: "/mantenimiento/servicios"},
+  {name: "Vehículos", icon: Truck, href: "/mantenimiento/vehiculos"},
+  {name: "Operarios", icon: Users, href: "/mantenimiento/operarios"},
+  {name: "Usuarios", icon: UserCog, href: "/mantenimiento/usuarios"},
 ];
 
 export default function MainLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const { user, logout } = useAuth();
+  const {user, logout} = useAuth();
 
   return (
     <div className="flex h-screen overflow-hidden">
@@ -51,19 +52,11 @@ export default function MainLayout() {
       <aside
         className={cn(
           "fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r bg-sidebar transition-transform duration-300 lg:static lg:translate-x-0",
-          sidebarOpen ? "translate-x-0" : "-translate-x-full"
+          sidebarOpen ? "translate-x-0" : "-translate-x-full",
         )}
       >
-        {/* Logo */}
-        <div className="flex h-16 items-center justify-between border-b px-6">
-          <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-              <HardHat className="h-5 w-5 text-white" />
-            </div>
-            <span className="text-lg font-bold bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
-              Everobras
-            </span>
-          </div>
+        <div className="flex items-center justify-between lg:justify-center border-b px-6">
+          <Logo className="h-20 w-auto py-2" />
           <Button
             variant="ghost"
             size="icon"
@@ -83,12 +76,12 @@ export default function MainLayout() {
                 to={item.href}
                 end={item.href === "/"}
                 onClick={() => setSidebarOpen(false)}
-                className={({ isActive }) =>
+                className={({isActive}) =>
                   cn(
                     "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all",
                     isActive
                       ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-sm"
-                      : "text-sidebar-foreground hover:bg-sidebar-accent"
+                      : "text-sidebar-foreground hover:bg-sidebar-accent",
                   )
                 }
               >
@@ -108,12 +101,12 @@ export default function MainLayout() {
                   key={item.href}
                   to={item.href}
                   onClick={() => setSidebarOpen(false)}
-                  className={({ isActive }) =>
+                  className={({isActive}) =>
                     cn(
                       "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all",
                       isActive
                         ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-sm"
-                        : "text-sidebar-foreground hover:bg-sidebar-accent"
+                        : "text-sidebar-foreground hover:bg-sidebar-accent",
                     )
                   }
                 >

@@ -1,7 +1,9 @@
 import axios from "axios";
 
+const API_BASE_URL = import.meta.env.VITE_API_URL || "/api";
+
 const api = axios.create({
-  baseURL: "/api",
+  baseURL: API_BASE_URL,
   headers: {"Content-Type": "application/json"},
 });
 
@@ -97,7 +99,7 @@ api.interceptors.response.use(
       }
 
       try {
-        const res = await axios.post("/api/auth/refresh", {
+        const res = await axios.post(`${API_BASE_URL}/auth/refresh`, {
           refreshToken: currentRefreshToken,
         });
         const newAuthToken = res.data.authToken;
@@ -123,11 +125,11 @@ api.interceptors.response.use(
 export const authApi = {
   login: (data: {email: string; password: string}) =>
     axios
-      .post("/api/auth/login", data)
+      .post(`${API_BASE_URL}/auth/login`, data)
       .then((r) => r.data),
   refresh: (refreshTokenValue: string) =>
     axios
-      .post("/api/auth/refresh", {refreshToken: refreshTokenValue})
+      .post(`${API_BASE_URL}/auth/refresh`, {refreshToken: refreshTokenValue})
       .then((r) => r.data),
   logout: () => api.post("/auth/logout").then((r) => r.data),
   me: () => api.get("/auth/me").then((r) => r.data),

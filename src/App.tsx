@@ -15,6 +15,8 @@ import ServicesPage from "@/pages/maintenance/ServicesPage";
 import VehiclesPage from "@/pages/maintenance/VehiclesPage";
 import WorkersPage from "@/pages/maintenance/WorkersPage";
 import UsersPage from "@/pages/maintenance/UsersPage";
+import ForgotPasswordPage from "@/pages/ForgotPasswordPage";
+import ResetPasswordPage from "@/pages/ResetPasswordPage";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -75,6 +77,18 @@ export default function App() {
                     <LoginPage />
                   </PublicRoute>
                 }
+              />
+              <Route
+                path="/forgot-password"
+                element={
+                  <PublicRoute>
+                    <ForgotPasswordPage />
+                  </PublicRoute>
+                }
+              />
+              <Route
+                path="/reset-password"
+                element={<ResetPasswordPage />}
               />
               <Route
                 element={

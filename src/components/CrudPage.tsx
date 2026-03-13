@@ -32,6 +32,7 @@ interface CrudPageProps<T> {
   deleteMutation: UseMutationResult<unknown, Error, string>;
   renderForm: (item: T | null, onClose: () => void) => React.ReactNode;
   getId: (item: T) => string;
+  canDelete?: (item: T) => boolean;
 }
 
 export default function CrudPage<T>({
@@ -43,6 +44,7 @@ export default function CrudPage<T>({
   deleteMutation,
   renderForm,
   getId,
+  canDelete,
 }: CrudPageProps<T>) {
   const [globalFilter, setGlobalFilter] = useState("");
   const [editItem, setEditItem] = useState<T | null | undefined>(undefined); // undefined=closed, null=new, T=edit
@@ -59,9 +61,11 @@ export default function CrudPage<T>({
           <Button variant="ghost" size="icon" onClick={() => setEditItem(row.original)}>
             <Pencil className="h-4 w-4" />
           </Button>
-          <Button variant="ghost" size="icon" onClick={() => setDeleteItem(row.original)}>
-            <Trash2 className="h-4 w-4 text-destructive" />
-          </Button>
+          {(!canDelete || canDelete(row.original)) && (
+            <Button variant="ghost" size="icon" onClick={() => setDeleteItem(row.original)}>
+              <Trash2 className="h-4 w-4 text-destructive" />
+            </Button>
+          )}
         </div>
       ),
     },

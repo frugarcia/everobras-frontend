@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ArrowLeft, Pencil } from "lucide-react";
+import { ArrowLeft, Pencil, UserCircle } from "lucide-react";
 import { useDeliveryNote } from "@/hooks/useQueries";
 
 interface DeliveryNoteLine {
@@ -28,6 +28,10 @@ interface DeliveryNote {
   project: { name: string; customer: { name: string } };
   worker: { firstName: string; lastName: string };
   lines: DeliveryNoteLine[];
+  createdAt: string;
+  updatedAt: string;
+  createdBy: { id: string; name: string } | null;
+  updatedBy: { id: string; name: string } | null;
 }
 
 export default function DeliveryNoteDetailPage() {
@@ -156,6 +160,44 @@ export default function DeliveryNoteDetailPage() {
               </TableRow>
             </TableBody>
           </Table>
+        </CardContent>
+      </Card>
+
+      {/* Audit info */}
+      <Card>
+        <CardHeader><CardTitle className="text-sm text-muted-foreground">Registro</CardTitle></CardHeader>
+        <CardContent className="space-y-3">
+          {note.createdBy && (
+            <div className="flex items-center gap-2 text-sm">
+              <UserCircle className="h-4 w-4 text-muted-foreground" />
+              <span className="text-muted-foreground">Creado por</span>
+              <span className="font-medium">{note.createdBy.name}</span>
+              <span className="text-muted-foreground">—</span>
+              <span className="text-muted-foreground">
+                {new Date(note.createdAt).toLocaleString("es-ES", {
+                  dateStyle: "medium",
+                  timeStyle: "short",
+                })}
+              </span>
+            </div>
+          )}
+          {note.updatedBy && (
+            <div className="flex items-center gap-2 text-sm">
+              <UserCircle className="h-4 w-4 text-muted-foreground" />
+              <span className="text-muted-foreground">Última modificación por</span>
+              <span className="font-medium">{note.updatedBy.name}</span>
+              <span className="text-muted-foreground">—</span>
+              <span className="text-muted-foreground">
+                {new Date(note.updatedAt).toLocaleString("es-ES", {
+                  dateStyle: "medium",
+                  timeStyle: "short",
+                })}
+              </span>
+            </div>
+          )}
+          {!note.createdBy && !note.updatedBy && (
+            <p className="text-sm text-muted-foreground">Sin información de registro</p>
+          )}
         </CardContent>
       </Card>
     </div>

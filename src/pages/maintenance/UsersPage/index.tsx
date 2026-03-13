@@ -7,6 +7,7 @@ import {
   useUpdateUser,
   useDeleteUser,
 } from "@/hooks/useQueries";
+import {useAuth} from "@/contexts/AuthContext";
 import {DialogHeader, DialogTitle} from "@/components/ui/dialog";
 import {Label} from "@/components/ui/label";
 import {Input} from "@/components/ui/input";
@@ -40,21 +41,16 @@ function UserForm({
     defaultValues: {
       name: item?.name ?? "",
       email: item?.email ?? "",
-      password: "",
     },
     validators: {
-      onSubmit: isEditing ? undefined : userSchema,
+      onSubmit: userSchema,
     },
     onSubmit: async ({value}) => {
       if (item) {
-        const data: Record<string, string> = {
-          name: value.name,
-          email: value.email,
-        };
-        if (value.password) {
-          data.password = value.password;
-        }
-        await updateMutation.mutateAsync({id: item.id, data});
+        await updateMutation.mutateAsync({
+          id: item.id,
+          data: {name: value.name, email: value.email},
+        });
       } else {
         await createMutation.mutateAsync(value);
       }
@@ -105,23 +101,11 @@ function UserForm({
             </div>
           )}
         </form.Field>
-        <form.Field name="password">
-          {(field) => (
-            <div className="grid gap-2">
-              <Label htmlFor="password">
-                Contraseña{isEditing && " (dejar vacío para no cambiar)"}
-              </Label>
-              <Input
-                id="password"
-                type="password"
-                value={field.state.value}
-                onChange={(e) => field.handleChange(e.target.value)}
-                onBlur={field.handleBlur}
-              />
-              <FieldError field={field} />
-            </div>
-          )}
-        </form.Field>
+        {!isEditing && (
+          <p className="text-sm text-muted-foreground">
+            Se enviará un email al usuario para que establezca su contraseña.
+          </p>
+        )}
       </div>
       <div className="flex justify-end gap-2">
         <Button type="button" variant="outline" onClick={onClose}>
@@ -142,6 +126,7 @@ function UserForm({
 export default function UsersPage() {
   const {data = [], isLoading} = useUsers();
   const deleteMutation = useDeleteUser();
+  const {user: currentUser} = useAuth();
 
   return (
     <CrudPage<User>
@@ -152,6 +137,7 @@ export default function UsersPage() {
       isLoading={isLoading}
       deleteMutation={deleteMutation}
       getId={(item) => item.id}
+      canDelete={(item) => item.id !== currentUser?.id}
       renderForm={(item, onClose) => (
         <UserForm item={item} onClose={onClose} />
       )}

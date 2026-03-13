@@ -270,7 +270,7 @@ export function useUsers() {
 export function useCreateUser() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (data: { email: string; password: string; name: string }) =>
+    mutationFn: (data: { email: string; name: string }) =>
       usersApi.create(data),
     onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.users }),
   });
@@ -284,7 +284,7 @@ export function useUpdateUser() {
       data,
     }: {
       id: string;
-      data: Partial<{ email: string; password: string; name: string }>;
+      data: Partial<{ email: string; name: string }>;
     }) => usersApi.update(id, data),
     onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.users }),
   });

@@ -133,6 +133,14 @@ export const authApi = {
       .then((r) => r.data),
   logout: () => api.post("/auth/logout").then((r) => r.data),
   me: () => api.get("/auth/me").then((r) => r.data),
+  forgotPassword: (email: string) =>
+    axios
+      .post(`${API_BASE_URL}/auth/forgot-password`, {email})
+      .then((r) => r.data),
+  resetPassword: (token: string, password: string) =>
+    axios
+      .post(`${API_BASE_URL}/auth/reset-password`, {token, password})
+      .then((r) => r.data),
 };
 
 // Customers
@@ -230,11 +238,11 @@ export const deliveryNotesApi = {
 export const usersApi = {
   getAll: () => api.get("/users").then((r) => r.data),
   getById: (id: string) => api.get(`/users/${id}`).then((r) => r.data),
-  create: (data: {email: string; password: string; name: string}) =>
+  create: (data: {email: string; name: string}) =>
     api.post("/users", data).then((r) => r.data),
   update: (
     id: string,
-    data: Partial<{email: string; password: string; name: string}>,
+    data: Partial<{email: string; name: string}>,
   ) => api.put(`/users/${id}`, data).then((r) => r.data),
   delete: (id: string) => api.delete(`/users/${id}`).then((r) => r.data),
 };

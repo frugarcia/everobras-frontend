@@ -4,11 +4,11 @@ import { FileText, Building2, Package, Users, Truck, Wrench } from "lucide-react
 import { useCustomers, useMaterials, useServices, useVehicles, useWorkers, useDeliveryNotes } from "@/hooks/useQueries";
 
 export default function Dashboard() {
-  const { data: customers = [] } = useCustomers();
-  const { data: materials = [] } = useMaterials();
-  const { data: services = [] } = useServices();
-  const { data: vehicles = [] } = useVehicles();
-  const { data: workers = [] } = useWorkers();
+  const { data: customersResult } = useCustomers({limit: 1});
+  const { data: materialsResult } = useMaterials({limit: 1});
+  const { data: servicesResult } = useServices({limit: 1});
+  const { data: vehiclesResult } = useVehicles({limit: 1});
+  const { data: workersResult } = useWorkers({limit: 1});
   const { data: deliveryNotes = [], isLoading } = useDeliveryNotes();
 
   const signed = deliveryNotes.filter((d: { signed: boolean }) => d.signed).length;
@@ -24,11 +24,11 @@ export default function Dashboard() {
 
   const cards = [
     { title: "Albaranes", value: deliveryNotes.length, icon: FileText, color: "text-blue-600", bg: "bg-blue-50" },
-    { title: "Clientes", value: customers.length, icon: Building2, color: "text-emerald-600", bg: "bg-emerald-50" },
-    { title: "Materiales", value: materials.length, icon: Package, color: "text-amber-600", bg: "bg-amber-50" },
-    { title: "Servicios", value: services.length, icon: Wrench, color: "text-purple-600", bg: "bg-purple-50" },
-    { title: "Vehículos", value: vehicles.length, icon: Truck, color: "text-rose-600", bg: "bg-rose-50" },
-    { title: "Operarios", value: workers.length, icon: Users, color: "text-cyan-600", bg: "bg-cyan-50" },
+    { title: "Clientes", value: customersResult?.total ?? 0, icon: Building2, color: "text-emerald-600", bg: "bg-emerald-50" },
+    { title: "Materiales", value: materialsResult?.total ?? 0, icon: Package, color: "text-amber-600", bg: "bg-amber-50" },
+    { title: "Servicios", value: servicesResult?.total ?? 0, icon: Wrench, color: "text-purple-600", bg: "bg-purple-50" },
+    { title: "Vehículos", value: vehiclesResult?.total ?? 0, icon: Truck, color: "text-rose-600", bg: "bg-rose-50" },
+    { title: "Operarios", value: workersResult?.total ?? 0, icon: Users, color: "text-cyan-600", bg: "bg-cyan-50" },
   ];
 
   return (

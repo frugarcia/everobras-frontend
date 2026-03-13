@@ -66,11 +66,16 @@ export default function DeliveryNoteFormPage() {
   ]);
   const [formReady, setFormReady] = useState(!isEdit);
 
-  const {data: projects = []} = useProjects();
-  const {data: workers = []} = useWorkers();
-  const {data: materials = []} = useMaterials();
-  const {data: services = []} = useServices();
-  const {data: vehicles = []} = useVehicles();
+  const {data: projectsResult} = useProjects({limit: 9999});
+  const {data: workersResult} = useWorkers({limit: 9999});
+  const {data: materialsResult} = useMaterials({limit: 9999});
+  const {data: servicesResult} = useServices({limit: 9999});
+  const {data: vehiclesResult} = useVehicles({limit: 9999});
+  const projects = projectsResult?.data ?? [];
+  const workers = workersResult?.data ?? [];
+  const materials = materialsResult?.data ?? [];
+  const services = servicesResult?.data ?? [];
+  const vehicles = vehiclesResult?.data ?? [];
   const {data: existingNote} = useDeliveryNote(id ?? "");
 
   const createMutation = useCreateDeliveryNote();

@@ -1,3 +1,4 @@
+import {useState} from "react";
 import {type ColumnDef} from "@tanstack/react-table";
 import {useForm} from "@tanstack/react-form";
 import CrudPage from "@/components/CrudPage";
@@ -150,7 +151,9 @@ function WorkerForm({
 }
 
 export default function WorkersPage() {
-  const {data = [], isLoading} = useWorkers();
+  const [page, setPage] = useState(1);
+  const [search, setSearch] = useState("");
+  const {data: result, isLoading} = useWorkers({page, limit: 10, search: search || undefined});
   const deleteMutation = useDeleteWorker();
 
   return (
@@ -158,8 +161,13 @@ export default function WorkersPage() {
       title="Operarios"
       description="Gestión de operarios"
       columns={columns}
-      data={data}
+      data={result?.data ?? []}
+      total={result?.total ?? 0}
+      page={result?.page ?? page}
+      limit={result?.limit ?? 10}
       isLoading={isLoading}
+      onPageChange={setPage}
+      onSearchChange={(s) => { setSearch(s); setPage(1); }}
       deleteMutation={deleteMutation}
       getId={(item) => item.id}
       renderForm={(item, onClose) => (

@@ -1,3 +1,4 @@
+import {useState} from "react";
 import {type ColumnDef} from "@tanstack/react-table";
 import {useForm} from "@tanstack/react-form";
 import CrudPage from "@/components/CrudPage";
@@ -45,7 +46,8 @@ function ProjectForm({
   item: Project | null;
   onClose: () => void;
 }) {
-  const {data: customers = []} = useCustomers();
+  const {data: customersResult} = useCustomers({limit: 9999});
+  const customers = customersResult?.data ?? [];
   const createMutation = useCreateProject();
   const updateMutation = useUpdateProject();
 
@@ -136,7 +138,9 @@ function ProjectForm({
 }
 
 export default function ProjectsPage() {
-  const {data = [], isLoading} = useProjects();
+  const [page, setPage] = useState(1);
+  const [search, setSearch] = useState("");
+  const {data: result, isLoading} = useProjects({page, limit: 10, search: search || undefined});
   const deleteMutation = useDeleteProject();
 
   return (
@@ -144,8 +148,13 @@ export default function ProjectsPage() {
       title="Obras"
       description="Gestión de obras"
       columns={columns}
-      data={data}
+      data={result?.data ?? []}
+      total={result?.total ?? 0}
+      page={result?.page ?? page}
+      limit={result?.limit ?? 10}
       isLoading={isLoading}
+      onPageChange={setPage}
+      onSearchChange={(s) => { setSearch(s); setPage(1); }}
       deleteMutation={deleteMutation}
       getId={(item) => item.id}
       renderForm={(item, onClose) => (

@@ -1,3 +1,4 @@
+import {useState} from "react";
 import {type ColumnDef} from "@tanstack/react-table";
 import {useForm} from "@tanstack/react-form";
 import CrudPage from "@/components/CrudPage";
@@ -92,7 +93,9 @@ function MaterialForm({
 }
 
 export default function MaterialsPage() {
-  const {data = [], isLoading} = useMaterials();
+  const [page, setPage] = useState(1);
+  const [search, setSearch] = useState("");
+  const {data: result, isLoading} = useMaterials({page, limit: 10, search: search || undefined});
   const deleteMutation = useDeleteMaterial();
 
   return (
@@ -100,8 +103,13 @@ export default function MaterialsPage() {
       title="Materiales"
       description="Gestión de materiales"
       columns={columns}
-      data={data}
+      data={result?.data ?? []}
+      total={result?.total ?? 0}
+      page={result?.page ?? page}
+      limit={result?.limit ?? 10}
       isLoading={isLoading}
+      onPageChange={setPage}
+      onSearchChange={(s) => { setSearch(s); setPage(1); }}
       deleteMutation={deleteMutation}
       getId={(item) => item.id}
       renderForm={(item, onClose) => (

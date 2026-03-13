@@ -145,7 +145,8 @@ export const authApi = {
 
 // Customers
 export const customersApi = {
-  getAll: () => api.get("/customers").then((r) => r.data),
+  getAll: (params?: {page?: number; limit?: number; search?: string}) =>
+    api.get("/customers", {params}).then((r) => r.data),
   getById: (id: string) => api.get(`/customers/${id}`).then((r) => r.data),
   create: (data: {name: string; cif: string}) =>
     api.post("/customers", data).then((r) => r.data),
@@ -156,7 +157,8 @@ export const customersApi = {
 
 // Projects
 export const projectsApi = {
-  getAll: () => api.get("/projects").then((r) => r.data),
+  getAll: (params?: {page?: number; limit?: number; search?: string}) =>
+    api.get("/projects", {params}).then((r) => r.data),
   getById: (id: string) => api.get(`/projects/${id}`).then((r) => r.data),
   create: (data: {name: string; customerId: string}) =>
     api.post("/projects", data).then((r) => r.data),
@@ -167,7 +169,8 @@ export const projectsApi = {
 
 // Materials
 export const materialsApi = {
-  getAll: () => api.get("/materials").then((r) => r.data),
+  getAll: (params?: {page?: number; limit?: number; search?: string}) =>
+    api.get("/materials", {params}).then((r) => r.data),
   getById: (id: string) => api.get(`/materials/${id}`).then((r) => r.data),
   create: (data: {name: string}) =>
     api.post("/materials", data).then((r) => r.data),
@@ -178,7 +181,8 @@ export const materialsApi = {
 
 // Services
 export const servicesApi = {
-  getAll: () => api.get("/services").then((r) => r.data),
+  getAll: (params?: {page?: number; limit?: number; search?: string}) =>
+    api.get("/services", {params}).then((r) => r.data),
   getById: (id: string) => api.get(`/services/${id}`).then((r) => r.data),
   create: (data: {name: string}) =>
     api.post("/services", data).then((r) => r.data),
@@ -189,7 +193,8 @@ export const servicesApi = {
 
 // Vehicles
 export const vehiclesApi = {
-  getAll: () => api.get("/vehicles").then((r) => r.data),
+  getAll: (params?: {page?: number; limit?: number; search?: string}) =>
+    api.get("/vehicles", {params}).then((r) => r.data),
   getById: (id: string) => api.get(`/vehicles/${id}`).then((r) => r.data),
   create: (data: {name: string; plate: string}) =>
     api.post("/vehicles", data).then((r) => r.data),
@@ -200,7 +205,8 @@ export const vehiclesApi = {
 
 // Workers
 export const workersApi = {
-  getAll: () => api.get("/workers").then((r) => r.data),
+  getAll: (params?: {page?: number; limit?: number; search?: string}) =>
+    api.get("/workers", {params}).then((r) => r.data),
   getById: (id: string) => api.get(`/workers/${id}`).then((r) => r.data),
   create: (data: {
     firstName: string;
@@ -236,7 +242,8 @@ export const deliveryNotesApi = {
 
 // Users
 export const usersApi = {
-  getAll: () => api.get("/users").then((r) => r.data),
+  getAll: (params?: {page?: number; limit?: number; search?: string}) =>
+    api.get("/users", {params}).then((r) => r.data),
   getById: (id: string) => api.get(`/users/${id}`).then((r) => r.data),
   create: (data: {email: string; name: string}) =>
     api.post("/users", data).then((r) => r.data),

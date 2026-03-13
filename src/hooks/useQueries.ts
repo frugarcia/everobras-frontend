@@ -10,29 +10,46 @@ import {
   usersApi,
 } from "@/lib/api";
 
+// ─── Pagination types ──────────────────────────────────────
+export interface PaginationParams {
+  page?: number;
+  limit?: number;
+  search?: string;
+}
+
+export interface PaginatedResponse<T> {
+  data: T[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
 // ─── Query Keys ────────────────────────────────────────────
 export const queryKeys = {
-  customers: ["customers"] as const,
+  customers: (params?: PaginationParams) => ["customers", params] as const,
   customer: (id: string) => ["customers", id] as const,
-  projects: ["projects"] as const,
+  projects: (params?: PaginationParams) => ["projects", params] as const,
   project: (id: string) => ["projects", id] as const,
-  materials: ["materials"] as const,
+  materials: (params?: PaginationParams) => ["materials", params] as const,
   material: (id: string) => ["materials", id] as const,
-  services: ["services"] as const,
+  services: (params?: PaginationParams) => ["services", params] as const,
   service: (id: string) => ["services", id] as const,
-  vehicles: ["vehicles"] as const,
+  vehicles: (params?: PaginationParams) => ["vehicles", params] as const,
   vehicle: (id: string) => ["vehicles", id] as const,
-  workers: ["workers"] as const,
+  workers: (params?: PaginationParams) => ["workers", params] as const,
   worker: (id: string) => ["workers", id] as const,
   deliveryNotes: (params?: Record<string, string>) => ["delivery-notes", params] as const,
   deliveryNote: (id: string) => ["delivery-notes", id] as const,
-  users: ["users"] as const,
+  users: (params?: PaginationParams) => ["users", params] as const,
   user: (id: string) => ["users", id] as const,
 };
 
 // ─── Customers ─────────────────────────────────────────────
-export function useCustomers() {
-  return useQuery({ queryKey: queryKeys.customers, queryFn: customersApi.getAll });
+export function useCustomers(params?: PaginationParams) {
+  return useQuery({
+    queryKey: queryKeys.customers(params),
+    queryFn: () => customersApi.getAll(params),
+  });
 }
 
 export function useCustomer(id: string) {
@@ -43,7 +60,7 @@ export function useCreateCustomer() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (data: { name: string; cif: string }) => customersApi.create(data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.customers }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["customers"] }),
   });
 }
 
@@ -52,7 +69,7 @@ export function useUpdateCustomer() {
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: Partial<{ name: string; cif: string }> }) =>
       customersApi.update(id, data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.customers }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["customers"] }),
   });
 }
 
@@ -60,13 +77,16 @@ export function useDeleteCustomer() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => customersApi.delete(id),
-    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.customers }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["customers"] }),
   });
 }
 
 // ─── Projects ──────────────────────────────────────────────
-export function useProjects() {
-  return useQuery({ queryKey: queryKeys.projects, queryFn: projectsApi.getAll });
+export function useProjects(params?: PaginationParams) {
+  return useQuery({
+    queryKey: queryKeys.projects(params),
+    queryFn: () => projectsApi.getAll(params),
+  });
 }
 
 export function useProject(id: string) {
@@ -77,7 +97,7 @@ export function useCreateProject() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (data: { name: string; customerId: string }) => projectsApi.create(data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.projects }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["projects"] }),
   });
 }
 
@@ -86,7 +106,7 @@ export function useUpdateProject() {
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: Partial<{ name: string; customerId: string }> }) =>
       projectsApi.update(id, data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.projects }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["projects"] }),
   });
 }
 
@@ -94,20 +114,23 @@ export function useDeleteProject() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => projectsApi.delete(id),
-    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.projects }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["projects"] }),
   });
 }
 
 // ─── Materials ─────────────────────────────────────────────
-export function useMaterials() {
-  return useQuery({ queryKey: queryKeys.materials, queryFn: materialsApi.getAll });
+export function useMaterials(params?: PaginationParams) {
+  return useQuery({
+    queryKey: queryKeys.materials(params),
+    queryFn: () => materialsApi.getAll(params),
+  });
 }
 
 export function useCreateMaterial() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (data: { name: string }) => materialsApi.create(data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.materials }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["materials"] }),
   });
 }
 
@@ -115,7 +138,7 @@ export function useUpdateMaterial() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: { name: string } }) => materialsApi.update(id, data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.materials }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["materials"] }),
   });
 }
 
@@ -123,20 +146,23 @@ export function useDeleteMaterial() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => materialsApi.delete(id),
-    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.materials }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["materials"] }),
   });
 }
 
 // ─── Services ──────────────────────────────────────────────
-export function useServices() {
-  return useQuery({ queryKey: queryKeys.services, queryFn: servicesApi.getAll });
+export function useServices(params?: PaginationParams) {
+  return useQuery({
+    queryKey: queryKeys.services(params),
+    queryFn: () => servicesApi.getAll(params),
+  });
 }
 
 export function useCreateService() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (data: { name: string }) => servicesApi.create(data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.services }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["services"] }),
   });
 }
 
@@ -144,7 +170,7 @@ export function useUpdateService() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: { name: string } }) => servicesApi.update(id, data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.services }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["services"] }),
   });
 }
 
@@ -152,20 +178,23 @@ export function useDeleteService() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => servicesApi.delete(id),
-    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.services }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["services"] }),
   });
 }
 
 // ─── Vehicles ──────────────────────────────────────────────
-export function useVehicles() {
-  return useQuery({ queryKey: queryKeys.vehicles, queryFn: vehiclesApi.getAll });
+export function useVehicles(params?: PaginationParams) {
+  return useQuery({
+    queryKey: queryKeys.vehicles(params),
+    queryFn: () => vehiclesApi.getAll(params),
+  });
 }
 
 export function useCreateVehicle() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (data: { name: string; plate: string }) => vehiclesApi.create(data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.vehicles }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["vehicles"] }),
   });
 }
 
@@ -174,7 +203,7 @@ export function useUpdateVehicle() {
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: Partial<{ name: string; plate: string }> }) =>
       vehiclesApi.update(id, data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.vehicles }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["vehicles"] }),
   });
 }
 
@@ -182,13 +211,16 @@ export function useDeleteVehicle() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => vehiclesApi.delete(id),
-    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.vehicles }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["vehicles"] }),
   });
 }
 
 // ─── Workers ───────────────────────────────────────────────
-export function useWorkers() {
-  return useQuery({ queryKey: queryKeys.workers, queryFn: workersApi.getAll });
+export function useWorkers(params?: PaginationParams) {
+  return useQuery({
+    queryKey: queryKeys.workers(params),
+    queryFn: () => workersApi.getAll(params),
+  });
 }
 
 export function useCreateWorker() {
@@ -196,7 +228,7 @@ export function useCreateWorker() {
   return useMutation({
     mutationFn: (data: { firstName: string; lastName: string; dni: string; email: string }) =>
       workersApi.create(data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.workers }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["workers"] }),
   });
 }
 
@@ -210,7 +242,7 @@ export function useUpdateWorker() {
       id: string;
       data: Partial<{ firstName: string; lastName: string; dni: string; email: string }>;
     }) => workersApi.update(id, data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.workers }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["workers"] }),
   });
 }
 
@@ -218,7 +250,7 @@ export function useDeleteWorker() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => workersApi.delete(id),
-    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.workers }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["workers"] }),
   });
 }
 
@@ -263,8 +295,11 @@ export function useDeleteDeliveryNote() {
 }
 
 // ─── Users ─────────────────────────────────────────────────
-export function useUsers() {
-  return useQuery({ queryKey: queryKeys.users, queryFn: usersApi.getAll });
+export function useUsers(params?: PaginationParams) {
+  return useQuery({
+    queryKey: queryKeys.users(params),
+    queryFn: () => usersApi.getAll(params),
+  });
 }
 
 export function useCreateUser() {
@@ -272,7 +307,7 @@ export function useCreateUser() {
   return useMutation({
     mutationFn: (data: { email: string; name: string }) =>
       usersApi.create(data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.users }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["users"] }),
   });
 }
 
@@ -286,7 +321,7 @@ export function useUpdateUser() {
       id: string;
       data: Partial<{ email: string; name: string }>;
     }) => usersApi.update(id, data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.users }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["users"] }),
   });
 }
 
@@ -294,6 +329,6 @@ export function useDeleteUser() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => usersApi.delete(id),
-    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.users }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["users"] }),
   });
 }

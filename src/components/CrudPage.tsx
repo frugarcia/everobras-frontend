@@ -1,9 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   useReactTable,
   getCoreRowModel,
-  getFilteredRowModel,
-  getPaginationRowModel,
   flexRender,
   type ColumnDef,
 } from "@tanstack/react-table";
@@ -28,7 +26,12 @@ interface CrudPageProps<T> {
   description: string;
   columns: ColumnDef<T, unknown>[];
   data: T[];
+  total: number;
+  page: number;
+  limit: number;
   isLoading: boolean;
+  onPageChange: (page: number) => void;
+  onSearchChange: (search: string) => void;
   deleteMutation: UseMutationResult<unknown, Error, string>;
   renderForm: (item: T | null, onClose: () => void) => React.ReactNode;
   getId: (item: T) => string;
@@ -40,16 +43,29 @@ export default function CrudPage<T>({
   description,
   columns,
   data,
+  total,
+  page,
+  limit,
   isLoading,
+  onPageChange,
+  onSearchChange,
   deleteMutation,
   renderForm,
   getId,
   canDelete,
 }: CrudPageProps<T>) {
-  const [globalFilter, setGlobalFilter] = useState("");
+  const [searchInput, setSearchInput] = useState("");
   const [editItem, setEditItem] = useState<T | null | undefined>(undefined); // undefined=closed, null=new, T=edit
   const [deleteItem, setDeleteItem] = useState<T | null>(null);
   const { showToast } = useToast();
+
+  // Debounced search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      onSearchChange(searchInput);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchInput, onSearchChange]);
 
   const allColumns: ColumnDef<T, unknown>[] = [
     ...columns,
@@ -75,12 +91,11 @@ export default function CrudPage<T>({
     data: data ?? [],
     columns: allColumns,
     getCoreRowModel: getCoreRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    state: { globalFilter },
-    onGlobalFilterChange: setGlobalFilter,
-    initialState: { pagination: { pageSize: 10 } },
+    manualPagination: true,
+    pageCount: Math.ceil(total / limit),
   });
+
+  const totalPages = Math.ceil(total / limit) || 1;
 
   const handleDelete = async () => {
     if (!deleteItem) return;
@@ -115,8 +130,8 @@ export default function CrudPage<T>({
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
           placeholder="Buscar..."
-          value={globalFilter}
-          onChange={(e) => setGlobalFilter(e.target.value)}
+          value={searchInput}
+          onChange={(e) => setSearchInput(e.target.value)}
           className="pl-9"
         />
       </div>
@@ -168,25 +183,25 @@ export default function CrudPage<T>({
       {/* Pagination */}
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">
-          {table.getFilteredRowModel().rows.length} registro(s)
+          {total} registro(s)
         </p>
         <div className="flex items-center gap-2">
           <Button
             variant="outline"
             size="sm"
-            onClick={() => table.previousPage()}
-            disabled={!table.getCanPreviousPage()}
+            onClick={() => onPageChange(page - 1)}
+            disabled={page <= 1}
           >
             <ChevronLeft className="h-4 w-4" />
           </Button>
           <span className="text-sm">
-            Página {table.getState().pagination.pageIndex + 1} de {table.getPageCount()}
+            Página {page} de {totalPages}
           </span>
           <Button
             variant="outline"
             size="sm"
-            onClick={() => table.nextPage()}
-            disabled={!table.getCanNextPage()}
+            onClick={() => onPageChange(page + 1)}
+            disabled={page >= totalPages}
           >
             <ChevronRight className="h-4 w-4" />
           </Button>

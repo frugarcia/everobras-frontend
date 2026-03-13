@@ -1,3 +1,4 @@
+import {useState} from "react";
 import {type ColumnDef} from "@tanstack/react-table";
 import {useForm} from "@tanstack/react-form";
 import CrudPage from "@/components/CrudPage";
@@ -92,7 +93,9 @@ function ServiceForm({
 }
 
 export default function ServicesPage() {
-  const {data = [], isLoading} = useServices();
+  const [page, setPage] = useState(1);
+  const [search, setSearch] = useState("");
+  const {data: result, isLoading} = useServices({page, limit: 10, search: search || undefined});
   const deleteMutation = useDeleteService();
 
   return (
@@ -100,8 +103,13 @@ export default function ServicesPage() {
       title="Servicios"
       description="Gestión de servicios"
       columns={columns}
-      data={data}
+      data={result?.data ?? []}
+      total={result?.total ?? 0}
+      page={result?.page ?? page}
+      limit={result?.limit ?? 10}
       isLoading={isLoading}
+      onPageChange={setPage}
+      onSearchChange={(s) => { setSearch(s); setPage(1); }}
       deleteMutation={deleteMutation}
       getId={(item) => item.id}
       renderForm={(item, onClose) => (

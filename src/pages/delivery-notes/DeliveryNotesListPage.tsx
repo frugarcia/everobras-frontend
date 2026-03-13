@@ -56,7 +56,8 @@ export default function DeliveryNotesListPage() {
   }, [customerFilter, signedFilter]);
 
   const { data = [], isLoading } = useDeliveryNotes(params);
-  const { data: customers = [] } = useCustomers();
+  const { data: customersResult } = useCustomers({limit: 9999});
+  const customers = customersResult?.data ?? [];
   const deleteMutation = useDeleteDeliveryNote();
 
   const columns: ColumnDef<DeliveryNote, unknown>[] = [

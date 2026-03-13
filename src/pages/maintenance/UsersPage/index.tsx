@@ -1,3 +1,4 @@
+import {useState} from "react";
 import {type ColumnDef} from "@tanstack/react-table";
 import {useForm} from "@tanstack/react-form";
 import CrudPage from "@/components/CrudPage";
@@ -124,7 +125,9 @@ function UserForm({
 }
 
 export default function UsersPage() {
-  const {data = [], isLoading} = useUsers();
+  const [page, setPage] = useState(1);
+  const [search, setSearch] = useState("");
+  const {data: result, isLoading} = useUsers({page, limit: 10, search: search || undefined});
   const deleteMutation = useDeleteUser();
   const {user: currentUser} = useAuth();
 
@@ -133,8 +136,13 @@ export default function UsersPage() {
       title="Usuarios"
       description="Gestión de usuarios"
       columns={columns}
-      data={data}
+      data={result?.data ?? []}
+      total={result?.total ?? 0}
+      page={result?.page ?? page}
+      limit={result?.limit ?? 10}
       isLoading={isLoading}
+      onPageChange={setPage}
+      onSearchChange={(s) => { setSearch(s); setPage(1); }}
       deleteMutation={deleteMutation}
       getId={(item) => item.id}
       canDelete={(item) => item.id !== currentUser?.id}

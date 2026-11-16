@@ -1,19 +1,20 @@
 import {useState} from "react";
 import {type ColumnDef} from "@tanstack/react-table";
 import {useForm} from "@tanstack/react-form";
+import {IconBuilding} from "@tabler/icons-react";
+import {toast} from "sonner";
 import CrudPage from "@/components/CrudPage";
+import FormModal from "@/components/FormModal";
+import {AppInput} from "@/components/ui/app-input";
 import {
   useCustomers,
   useCreateCustomer,
   useUpdateCustomer,
   useDeleteCustomer,
 } from "@/hooks/useQueries";
-import {DialogHeader, DialogTitle} from "@/components/ui/dialog";
-import {Label} from "@/components/ui/label";
-import {Input} from "@/components/ui/input";
-import {Button} from "@/components/ui/button";
+import {getErrorMessage} from "@/lib/errors";
+import {fieldErrorProps} from "@/lib/form";
 import {customerSchema} from "./validations";
-import {FieldError} from "@/components/ui/field-error";
 
 interface Customer {
   id: string;
@@ -28,21 +29,11 @@ const columns: ColumnDef<Customer, unknown>[] = [
   {
     id: "projects",
     header: "Obras",
-    cell: ({row}) => (
-      <span className="text-muted-foreground">
-        {row.original.projects?.length ?? 0}
-      </span>
-    ),
+    cell: ({row}) => row.original.projects?.length ?? 0,
   },
 ];
 
-function CustomerForm({
-  item,
-  onClose,
-}: {
-  item: Customer | null;
-  onClose: () => void;
-}) {
+function CustomerForm({item, onClose}: {item: Customer | null; onClose: () => void}) {
   const createMutation = useCreateCustomer();
   const updateMutation = useUpdateCustomer();
 
@@ -51,101 +42,90 @@ function CustomerForm({
       name: item?.name ?? "",
       cif: item?.cif ?? "",
     },
-    validators: {
-      onSubmit: customerSchema,
-    },
+    validators: {onSubmit: customerSchema},
     onSubmit: async ({value}) => {
-      if (item) {
-        await updateMutation.mutateAsync({id: item.id, data: value});
-      } else {
-        await createMutation.mutateAsync(value);
+      try {
+        if (item) {
+          await updateMutation.mutateAsync({id: item.id, data: value});
+        } else {
+          await createMutation.mutateAsync(value);
+        }
+        toast.success(item ? "Cambios guardados" : "Registro creado correctamente");
+        onClose();
+      } catch (err) {
+        toast.error(getErrorMessage(err, "Error al guardar el registro"));
       }
-      onClose();
     },
   });
 
-  const isPending = createMutation.isPending || updateMutation.isPending;
-
   return (
-    <form
-      onSubmit={(e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        form.handleSubmit();
-      }}
+    <FormModal
+      title={item ? "Editar cliente" : "Nuevo cliente"}
+      icon={<IconBuilding size={20} className="text-primary" />}
+      isPending={createMutation.isPending || updateMutation.isPending}
+      onCancel={onClose}
+      onSubmit={form.handleSubmit}
     >
-      <DialogHeader>
-        <DialogTitle>{item ? "Editar Cliente" : "Nuevo Cliente"}</DialogTitle>
-      </DialogHeader>
-      <div className="grid gap-4 py-4">
         <form.Field name="name">
           {(field) => (
-            <div className="grid gap-2">
-              <Label htmlFor="name">Nombre de la empresa</Label>
-              <Input
-                id="name"
-                value={field.state.value}
-                onChange={(e) => field.handleChange(e.target.value)}
-                onBlur={field.handleBlur}
-              />
-              <FieldError field={field} />
-            </div>
+            <AppInput
+              label="Nombre de la empresa"
+              isRequired
+              value={field.state.value}
+              onChange={(e) => field.handleChange(e.target.value)}
+              onBlur={field.handleBlur}
+              {...fieldErrorProps(field)}
+            />
           )}
         </form.Field>
         <form.Field name="cif">
           {(field) => (
-            <div className="grid gap-2">
-              <Label htmlFor="cif">CIF</Label>
-              <Input
-                id="cif"
-                value={field.state.value}
-                onChange={(e) => field.handleChange(e.target.value)}
-                onBlur={field.handleBlur}
-              />
-              <FieldError field={field} />
-            </div>
+            <AppInput
+              label="CIF"
+              isRequired
+              value={field.state.value}
+              onChange={(e) => field.handleChange(e.target.value)}
+              onBlur={field.handleBlur}
+              {...fieldErrorProps(field)}
+            />
           )}
         </form.Field>
-      </div>
-      <div className="flex justify-end gap-2">
-        <Button type="button" variant="outline" onClick={onClose}>
-          Cancelar
-        </Button>
-        <form.Subscribe selector={(state) => [state.canSubmit]}>
-          {([canSubmit]) => (
-            <Button type="submit" disabled={!canSubmit || isPending}>
-              {isPending ? "Guardando..." : "Guardar"}
-            </Button>
-          )}
-        </form.Subscribe>
-      </div>
-    </form>
+    </FormModal>
   );
 }
 
 export default function CustomersPage() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
-  const {data: result, isLoading} = useCustomers({page, limit: 10, search: search || undefined});
+  const {data: result, isLoading, error} = useCustomers({
+    page,
+    limit: 10,
+    search: search || undefined,
+  });
   const deleteMutation = useDeleteCustomer();
 
   return (
     <CrudPage<Customer>
-      title="Clientes"
-      description="Gestión de clientes"
+      path="/mantenimiento/clientes"
+      addLabel="Añadir nuevo cliente"
+      totalLabel="Total clientes"
+      entityName="cliente"
       columns={columns}
       data={result?.data ?? []}
       total={result?.total ?? 0}
       page={result?.page ?? page}
       limit={result?.limit ?? 10}
       isLoading={isLoading}
+      error={error}
       onPageChange={setPage}
-      onSearchChange={(s) => { setSearch(s); setPage(1); }}
+      onSearchChange={(s) => {
+        setSearch(s);
+        setPage(1);
+      }}
       deleteMutation={deleteMutation}
       getId={(item) => item.id}
-      renderForm={(item, onClose) => (
-        <CustomerForm item={item} onClose={onClose} />
-      )}
+      getLabel={(item) => `${item.name} (${item.cif})`}
+      renderForm={(item, onClose) => <CustomerForm item={item} onClose={onClose} />}
     />
   );
 }

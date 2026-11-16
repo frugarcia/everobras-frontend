@@ -3,11 +3,13 @@ FROM node:22-alpine AS build
 
 WORKDIR /app
 
+RUN corepack enable pnpm
+
 # Copy dependency manifests first (better layer caching)
-COPY package.json package-lock.json ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 
 # Install dependencies
-RUN npm ci
+RUN pnpm install --frozen-lockfile
 
 # Copy the rest of the source code
 COPY . .
@@ -16,7 +18,7 @@ COPY . .
 ARG VITE_API_URL
 
 # Build the production bundle
-RUN npm run build
+RUN pnpm run build
 
 # ---- Stage 2: Serve with Nginx ----
 FROM nginx:stable-alpine AS production

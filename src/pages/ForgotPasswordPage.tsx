@@ -1,111 +1,91 @@
 import {useState} from "react";
 import {Link} from "react-router-dom";
+import {toast} from "sonner";
+import {MailIcon} from "lucide-react";
 import {authApi} from "@/lib/api";
 import {Button} from "@/components/ui/button";
-import {Input} from "@/components/ui/input";
-import {Label} from "@/components/ui/label";
-import {ArrowLeft, Mail} from "lucide-react";
-import Logo from "@/components/Logo";
+import {Field, FieldGroup, FieldLabel} from "@/components/ui/field";
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+} from "@/components/ui/input-group";
+import {Spinner} from "@/components/ui/spinner";
+import AuthShell from "@/components/AuthShell";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
-  const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [sent, setSent] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError("");
     setIsLoading(true);
-
     try {
       await authApi.forgotPassword(email);
       setSent(true);
     } catch {
-      setError("Error al enviar el email. Inténtalo de nuevo.");
+      toast.error("No se ha podido enviar el enlace. Inténtalo de nuevo.");
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-white">
-      <div className="w-full max-w-md space-y-8 rounded-2xl border border-slate-200 bg-white p-8 shadow-lg">
-        <div className="flex flex-col items-center gap-3">
-          <Logo className="h-20 w-auto" />
-          <p className="text-sm text-slate-500">Recuperar contraseña</p>
+    <AuthShell
+      title="Recuperar contraseña"
+      description="Te enviaremos un enlace para crear una contraseña nueva"
+    >
+      {sent ? (
+        <div className="flex flex-col gap-4 text-sm">
+          <p>
+            Si existe una cuenta con el email <strong>{email}</strong>, se ha
+            enviado un enlace para restablecer la contraseña. Caduca en 1 hora.
+          </p>
+          <Link to="/login" className="text-sm text-primary underline">
+            Volver al acceso
+          </Link>
         </div>
-
-        {sent ? (
-          <div className="space-y-4">
-            <div className="flex flex-col items-center gap-3 py-4">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-green-500/20">
-                <Mail className="h-6 w-6 text-green-400" />
-              </div>
-              <p className="text-center text-sm text-slate-600">
-                Si existe una cuenta con el email{" "}
-                <strong className="text-slate-900">{email}</strong>, recibirás
-                un enlace para restablecer tu contraseña.
-              </p>
-            </div>
-            <Link to="/login">
-              <Button
-                variant="outline"
-                className="w-full border-slate-300 text-slate-700 hover:bg-slate-100"
-              >
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Volver al login
-              </Button>
-            </Link>
-          </div>
-        ) : (
-          <form onSubmit={handleSubmit} className="space-y-5">
-            {error && (
-              <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
-                {error}
-              </div>
-            )}
-
-            <p className="text-sm text-slate-500">
-              Introduce tu email y te enviaremos un enlace para restablecer tu
-              contraseña.
-            </p>
-
-            <div className="space-y-2">
-              <Label htmlFor="email" className="text-slate-700">
-                Email
-              </Label>
-              <Input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="tu@email.com"
-                required
-                className="border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:ring-blue-500/20"
-              />
-            </div>
-
+      ) : (
+        <form onSubmit={handleSubmit}>
+          <FieldGroup>
+            <Field>
+              <FieldLabel htmlFor="email">Email</FieldLabel>
+              <InputGroup className="h-9">
+                <InputGroupAddon>
+                  <MailIcon />
+                </InputGroupAddon>
+                <InputGroupInput
+                  id="email"
+                  type="email"
+                  autoFocus
+                  autoComplete="email"
+                  placeholder="Introduzca el email"
+                  required
+                  disabled={isLoading}
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
+              </InputGroup>
+            </Field>
             <Button
               type="submit"
+              size="lg"
+              className="w-full"
               disabled={isLoading}
-              className="w-full bg-linear-to-r from-blue-500 to-purple-600 font-medium hover:from-blue-600 hover:to-purple-700"
             >
-              {isLoading ? "Enviando..." : "Enviar enlace"}
+              {isLoading ? <Spinner /> : null}
+              {isLoading ? "Enviando…" : "Enviar enlace"}
             </Button>
-
-            <div className="text-center">
-              <Link
-                to="/login"
-                className="text-sm text-slate-500 hover:text-slate-700 transition-colors"
-              >
-                <ArrowLeft className="mr-1 inline h-3 w-3" />
-                Volver al login
-              </Link>
-            </div>
-          </form>
-        )}
-      </div>
-    </div>
+            <Link
+              to="/login"
+              className="block text-center text-sm text-primary underline"
+            >
+              Volver al acceso
+            </Link>
+          </FieldGroup>
+        </form>
+      )}
+    </AuthShell>
   );
 }

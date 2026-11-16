@@ -1,30 +1,31 @@
-import { useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import {useMemo, useState} from "react";
+import {useNavigate} from "react-router-dom";
 import {
-  useReactTable,
   getCoreRowModel,
   getFilteredRowModel,
   getPaginationRowModel,
-  flexRender,
+  getSortedRowModel,
+  useReactTable,
   type ColumnDef,
 } from "@tanstack/react-table";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Search, ChevronLeft, ChevronRight, Eye, Pencil, Trash2 } from "lucide-react";
+import {IconEdit, IconEye, IconPlus, IconTrash} from "@tabler/icons-react";
+import {toast} from "sonner";
+import ButtonBordered from "@/components/ButtonBordered";
+import ButtonTable from "@/components/ButtonTable";
+import LinkTable from "@/components/LinkTable";
+import RenderWhenLoad from "@/components/RenderWhenLoad";
+import Table from "@/components/Table";
+import TitleSegment from "@/components/TitleSegment";
+import {Badge} from "@/components/ui/badge";
+import {AppInput} from "@/components/ui/app-input";
+import {AppSelect} from "@/components/ui/app-select";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import { useDeliveryNotes, useDeleteDeliveryNote, useCustomers } from "@/hooks/useQueries";
-import { useToast } from "@/components/ui/toast";
-import axios from "axios";
+  useCustomers,
+  useDeleteDeliveryNote,
+  useDeliveryNotes,
+} from "@/hooks/useQueries";
+import {getErrorMessage} from "@/lib/errors";
+import useModalStore from "@/store/useModalStore";
 
 interface DeliveryNote {
   id: string;
@@ -33,42 +34,102 @@ interface DeliveryNote {
   externalNumber: string | null;
   date: string;
   signed: boolean;
-  vehicle: { id: string; name: string; plate: string } | null;
+  vehicle: {id: string; name: string; plate: string} | null;
   vehicleText: string | null;
-  project: { id: string; name: string; customer: { id: string; name: string } };
-  worker: { id: string; firstName: string; lastName: string };
+  project: {id: string; name: string; customer: {id: string; name: string}};
+  worker: {id: string; firstName: string; lastName: string};
   lines: unknown[];
 }
+
+const SIGNED_FILTER_OPTIONS = [
+  {value: "all", label: "Todos"},
+  {value: "true", label: "Firmados"},
+  {value: "false", label: "Pendientes"},
+];
 
 export default function DeliveryNotesListPage() {
   const navigate = useNavigate();
   const [globalFilter, setGlobalFilter] = useState("");
   const [customerFilter, setCustomerFilter] = useState("all");
   const [signedFilter, setSignedFilter] = useState("all");
-  const [deleteItem, setDeleteItem] = useState<DeliveryNote | null>(null);
-  const { showToast } = useToast();
+  const handleLaunchModal = useModalStore((state) => state.handleLaunchModal);
 
   const params = useMemo(() => {
     const p: Record<string, string> = {};
-    if (customerFilter && customerFilter !== "all") p.customerId = customerFilter;
-    if (signedFilter && signedFilter !== "all") p.signed = signedFilter;
+    if (customerFilter !== "all") p.customerId = customerFilter;
+    if (signedFilter !== "all") p.signed = signedFilter;
     return p;
   }, [customerFilter, signedFilter]);
 
-  const { data = [], isLoading } = useDeliveryNotes(params);
-  const { data: customersResult } = useCustomers({limit: 9999});
-  const customers = customersResult?.data ?? [];
+  const {data = [], isLoading, error} = useDeliveryNotes(params);
+  const {data: customersResult} = useCustomers({limit: 9999});
+  const customerOptions = [
+    {value: "all", label: "Todos los clientes"},
+    ...(customersResult?.data ?? []).map((c: {id: string; name: string}) => ({
+      value: c.id,
+      label: c.name,
+    })),
+  ];
   const deleteMutation = useDeleteDeliveryNote();
+
+  function confirmDelete(note: DeliveryNote) {
+    handleLaunchModal({
+      title: "Eliminar albarán",
+      text: "¿Está seguro que desea eliminar el albarán seleccionado?",
+      description: `Nº ${note.internalNumber ?? note.externalNumber ?? "—"} · ${note.project?.name ?? ""}`,
+      subText: "Esta acción no se podrá deshacer.",
+      type: "delete",
+      promise: async () => {
+        try {
+          await deleteMutation.mutateAsync(note.id);
+          toast.success("Albarán eliminado correctamente");
+        } catch (err) {
+          toast.error(getErrorMessage(err, "Error al eliminar el albarán"));
+        }
+      },
+    });
+  }
 
   const columns: ColumnDef<DeliveryNote, unknown>[] = [
     {
+      id: "actions",
+      header: "Acciones",
+      enableSorting: false,
+      meta: {headerClassName: "w-28 text-center"},
+      cell: ({row}) => (
+        <div className="flex items-center justify-center gap-2">
+          <LinkTable
+            to={`/albaranes/${row.original.id}`}
+            tooltip="Ver detalle"
+            icon={<IconEye size={20} className="stroke-green-600" />}
+          />
+          <LinkTable
+            to={`/albaranes/${row.original.id}/editar`}
+            tooltip="Editar albarán"
+            icon={<IconEdit size={20} className="stroke-blue-700" />}
+          />
+          <ButtonTable
+            tooltip="Eliminar albarán"
+            icon={<IconTrash size={20} className="stroke-red-600" />}
+            onClick={() => confirmDelete(row.original)}
+          />
+        </div>
+      ),
+    },
+    {
       id: "number",
       header: "Nº Albarán",
-      cell: ({ row }) => (
+      accessorFn: (row) =>
+        [row.internalNumber, row.externalNumber].filter(Boolean).join(" "),
+      cell: ({row}) => (
         <div>
-          <span className="font-medium">{row.original.internalNumber ?? "-"}</span>
+          <span className="font-medium">
+            {row.original.internalNumber ?? "—"}
+          </span>
           {row.original.externalNumber && (
-            <span className="text-muted-foreground text-xs ml-1">({row.original.externalNumber})</span>
+            <span className="ml-1 text-xs text-muted-foreground">
+              ({row.original.externalNumber})
+            </span>
           )}
         </div>
       ),
@@ -76,8 +137,11 @@ export default function DeliveryNotesListPage() {
     {
       id: "type",
       header: "Tipo",
-      cell: ({ row }) => (
-        <Badge variant={row.original.type === "INTERNO" ? "secondary" : "outline"}>
+      accessorKey: "type",
+      cell: ({row}) => (
+        <Badge
+          variant={row.original.type === "INTERNO" ? "secondary" : "outline"}
+        >
           {row.original.type}
         </Badge>
       ),
@@ -85,35 +149,42 @@ export default function DeliveryNotesListPage() {
     {
       id: "date",
       header: "Fecha",
-      cell: ({ row }) => new Date(row.original.date).toLocaleDateString("es-ES"),
+      accessorKey: "date",
+      cell: ({row}) =>
+        new Date(row.original.date).toLocaleDateString("es-ES"),
     },
     {
       id: "customer",
       header: "Cliente",
-      cell: ({ row }) => row.original.project?.customer?.name ?? "-",
+      accessorFn: (row) => row.project?.customer?.name ?? "",
+      cell: (info) => (info.getValue() as string) || "—",
     },
     {
       id: "project",
       header: "Obra",
-      cell: ({ row }) => row.original.project?.name ?? "-",
+      accessorFn: (row) => row.project?.name ?? "",
+      cell: (info) => (info.getValue() as string) || "—",
     },
     {
       id: "worker",
       header: "Operario",
-      cell: ({ row }) => `${row.original.worker?.firstName ?? ""} ${row.original.worker?.lastName ?? ""}`.trim(),
+      accessorFn: (row) =>
+        `${row.worker?.firstName ?? ""} ${row.worker?.lastName ?? ""}`.trim(),
     },
     {
       id: "vehicle",
       header: "Vehículo",
-      cell: ({ row }) =>
-        row.original.vehicle
-          ? `${row.original.vehicle.name} (${row.original.vehicle.plate})`
-          : row.original.vehicleText ?? "-",
+      accessorFn: (row) =>
+        row.vehicle
+          ? `${row.vehicle.name} (${row.vehicle.plate})`
+          : (row.vehicleText ?? ""),
+      cell: (info) => (info.getValue() as string) || "—",
     },
     {
       id: "signed",
       header: "Firmado",
-      cell: ({ row }) => (
+      accessorKey: "signed",
+      cell: ({row}) => (
         <Badge variant={row.original.signed ? "success" : "warning"}>
           {row.original.signed ? "Sí" : "No"}
         </Badge>
@@ -122,24 +193,7 @@ export default function DeliveryNotesListPage() {
     {
       id: "lines",
       header: "Líneas",
-      cell: ({ row }) => <span className="text-muted-foreground">{row.original.lines?.length ?? 0}</span>,
-    },
-    {
-      id: "actions",
-      header: "",
-      cell: ({ row }) => (
-        <div className="flex gap-1 justify-end">
-          <Button variant="ghost" size="icon" onClick={() => navigate(`/albaranes/${row.original.id}`)}>
-            <Eye className="h-4 w-4" />
-          </Button>
-          <Button variant="ghost" size="icon" onClick={() => navigate(`/albaranes/${row.original.id}/editar`)}>
-            <Pencil className="h-4 w-4" />
-          </Button>
-          <Button variant="ghost" size="icon" onClick={() => setDeleteItem(row.original)}>
-            <Trash2 className="h-4 w-4 text-destructive" />
-          </Button>
-        </div>
-      ),
+      accessorFn: (row) => row.lines?.length ?? 0,
     },
   ];
 
@@ -148,147 +202,60 @@ export default function DeliveryNotesListPage() {
     columns,
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
+    getSortedRowModel: getSortedRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
-    state: { globalFilter },
+    state: {globalFilter},
     onGlobalFilterChange: setGlobalFilter,
-    initialState: { pagination: { pageSize: 15 } },
+    initialState: {
+      pagination: {pageSize: 15},
+      sorting: [{id: "date", desc: true}],
+    },
+    meta: {isLoading},
   });
 
-  const handleDelete = async () => {
-    if (!deleteItem) return;
-    try {
-      await deleteMutation.mutateAsync(deleteItem.id);
-      setDeleteItem(null);
-    } catch (err) {
-      setDeleteItem(null);
-      if (axios.isAxiosError(err) && err.response?.data?.error) {
-        showToast(err.response.data.error, "error");
-      } else {
-        showToast("Error al eliminar el albarán", "error");
-      }
-    }
-  };
-
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Albaranes</h1>
-          <p className="text-muted-foreground mt-1">Listado de albaranes</p>
-        </div>
-        <Button onClick={() => navigate("/albaranes/nuevo")} className="gap-2">
-          <Plus className="h-4 w-4" />
-          Nuevo Albarán
-        </Button>
-      </div>
-
-      {/* Filters */}
-      <div className="flex flex-wrap gap-4">
-        <div className="relative max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Buscar..."
+    <div className="flex w-full flex-col gap-6">
+      <TitleSegment path="/albaranes" />
+      <div className="flex flex-col gap-6 py-4">
+        <ButtonBordered
+          label="Añadir nuevo albarán"
+          color="green-600"
+          onPress={() => navigate("/albaranes/nuevo")}
+          startContent={<IconPlus />}
+          className="w-fit"
+        />
+        <div className="grid gap-4 md:grid-cols-[2fr_1fr_1fr]">
+          <AppInput
+            type="text"
+            label="Buscar..."
+            placeholder="Introduzca el texto a buscar..."
             value={globalFilter}
-            onChange={(e) => setGlobalFilter(e.target.value)}
-            className="pl-9"
+            onChange={(ev) => setGlobalFilter(ev.target.value)}
+            isClearable
+            onClear={() => setGlobalFilter("")}
+          />
+          <AppSelect
+            label="Cliente"
+            options={customerOptions}
+            value={customerFilter}
+            onChange={(v) => setCustomerFilter(v || "all")}
+          />
+          <AppSelect
+            label="Estado de firma"
+            options={SIGNED_FILTER_OPTIONS}
+            value={signedFilter}
+            onChange={(v) => setSignedFilter(v || "all")}
           />
         </div>
-        <Select value={customerFilter} onValueChange={setCustomerFilter}>
-          <SelectTrigger className="w-[200px]">
-            <SelectValue placeholder="Todos los clientes" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos los clientes</SelectItem>
-            {customers.map((c: { id: string; name: string }) => (
-              <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select value={signedFilter} onValueChange={setSignedFilter}>
-          <SelectTrigger className="w-[150px]">
-            <SelectValue placeholder="Estado firma" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos</SelectItem>
-            <SelectItem value="true">Firmados</SelectItem>
-            <SelectItem value="false">Pendientes</SelectItem>
-          </SelectContent>
-        </Select>
+        <RenderWhenLoad isLoading={false} error={error}>
+          <div className="flex flex-col gap-4">
+            <p className="text-sm font-medium text-muted-foreground">
+              Total albaranes: {table.getFilteredRowModel().rows.length}
+            </p>
+            <Table title="Tabla de albaranes" config={table} />
+          </div>
+        </RenderWhenLoad>
       </div>
-
-      {/* Table */}
-      <div className="rounded-lg border">
-        <Table>
-          <TableHeader>
-            {table.getHeaderGroups().map((hg) => (
-              <TableRow key={hg.id}>
-                {hg.headers.map((h) => (
-                  <TableHead key={h.id}>
-                    {h.isPlaceholder ? null : flexRender(h.column.columnDef.header, h.getContext())}
-                  </TableHead>
-                ))}
-              </TableRow>
-            ))}
-          </TableHeader>
-          <TableBody>
-            {isLoading ? (
-              <TableRow>
-                <TableCell colSpan={columns.length} className="h-24 text-center">
-                  <div className="flex justify-center">
-                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary" />
-                  </div>
-                </TableCell>
-              </TableRow>
-            ) : table.getRowModel().rows.length ? (
-              table.getRowModel().rows.map((row) => (
-                <TableRow key={row.id}>
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </TableCell>
-                  ))}
-                </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell colSpan={columns.length} className="h-24 text-center text-muted-foreground">
-                  No se encontraron albaranes.
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </div>
-
-      {/* Pagination */}
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-muted-foreground">{table.getFilteredRowModel().rows.length} albarán(es)</p>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}>
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <span className="text-sm">Página {table.getState().pagination.pageIndex + 1} de {table.getPageCount()}</span>
-          <Button variant="outline" size="sm" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-        </div>
-      </div>
-
-      {/* Delete Dialog */}
-      <Dialog open={deleteItem !== null} onOpenChange={(open) => !open && setDeleteItem(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Confirmar eliminación</DialogTitle>
-            <DialogDescription>¿Eliminar el albarán {deleteItem?.internalNumber}? Esta acción no se puede deshacer.</DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteItem(null)}>Cancelar</Button>
-            <Button variant="destructive" onClick={handleDelete} disabled={deleteMutation.isPending}>
-              {deleteMutation.isPending ? "Eliminando..." : "Eliminar"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

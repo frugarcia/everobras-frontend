@@ -1,79 +1,152 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { FileText, Building2, Package, Users, Truck, Wrench } from "lucide-react";
-import { useCustomers, useMaterials, useServices, useVehicles, useWorkers, useDeliveryNotes } from "@/hooks/useQueries";
+import {Link} from "react-router-dom";
+import {
+  IconBuilding,
+  IconCircleCheck,
+  IconClockHour4,
+  IconFileText,
+  IconPackage,
+  IconTool,
+  IconTruck,
+  IconUsers,
+  type Icon,
+} from "@tabler/icons-react";
+import RenderWhenLoad from "@/components/RenderWhenLoad";
+import TitleSegment from "@/components/TitleSegment";
+import {Card, CardContent} from "@/components/ui/card";
+import {cn} from "@/lib/utils";
+import {
+  useCustomers,
+  useDeliveryNotes,
+  useMaterials,
+  useServices,
+  useVehicles,
+  useWorkers,
+} from "@/hooks/useQueries";
 
-export default function Dashboard() {
-  const { data: customersResult } = useCustomers({limit: 1});
-  const { data: materialsResult } = useMaterials({limit: 1});
-  const { data: servicesResult } = useServices({limit: 1});
-  const { data: vehiclesResult } = useVehicles({limit: 1});
-  const { data: workersResult } = useWorkers({limit: 1});
-  const { data: deliveryNotes = [], isLoading } = useDeliveryNotes();
-
-  const signed = deliveryNotes.filter((d: { signed: boolean }) => d.signed).length;
-  const unsigned = deliveryNotes.filter((d: { signed: boolean }) => !d.signed).length;
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-      </div>
-    );
-  }
-
-  const cards = [
-    { title: "Albaranes", value: deliveryNotes.length, icon: FileText, color: "text-blue-600", bg: "bg-blue-50" },
-    { title: "Clientes", value: customersResult?.total ?? 0, icon: Building2, color: "text-emerald-600", bg: "bg-emerald-50" },
-    { title: "Materiales", value: materialsResult?.total ?? 0, icon: Package, color: "text-amber-600", bg: "bg-amber-50" },
-    { title: "Servicios", value: servicesResult?.total ?? 0, icon: Wrench, color: "text-purple-600", bg: "bg-purple-50" },
-    { title: "Vehículos", value: vehiclesResult?.total ?? 0, icon: Truck, color: "text-rose-600", bg: "bg-rose-50" },
-    { title: "Operarios", value: workersResult?.total ?? 0, icon: Users, color: "text-cyan-600", bg: "bg-cyan-50" },
-  ];
-
+function StatCard({
+  title,
+  value,
+  icon: IconCmp,
+  to,
+  iconClassName = "bg-primary/10 text-primary",
+}: {
+  title: string;
+  value: number;
+  icon: Icon;
+  to: string;
+  iconClassName?: string;
+}) {
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-        <p className="text-muted-foreground mt-1">Resumen general del sistema</p>
-      </div>
-
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {cards.map((card) => (
-          <Card key={card.title} className="hover:shadow-md transition-shadow">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                {card.title}
-              </CardTitle>
-              <div className={`rounded-lg p-2 ${card.bg}`}>
-                <card.icon className={`h-4 w-4 ${card.color}`} />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold">{card.value}</div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      {/* Delivery notes summary */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Estado de Albaranes</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex gap-4">
-            <div className="flex items-center gap-2">
-              <Badge variant="success">Firmados</Badge>
-              <span className="text-2xl font-bold">{signed}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Badge variant="warning">Pendientes</Badge>
-              <span className="text-2xl font-bold">{unsigned}</span>
-            </div>
+    <Link to={to}>
+      <Card className="transition-shadow hover:shadow-md">
+        <CardContent className="flex items-center gap-4">
+          <div
+            className={cn(
+              "flex size-11 shrink-0 items-center justify-center rounded-lg",
+              iconClassName,
+            )}
+          >
+            <IconCmp size={22} />
+          </div>
+          <div className="flex flex-col">
+            <span className="text-xs font-medium text-muted-foreground">
+              {title}
+            </span>
+            <span className="text-2xl font-semibold text-foreground">
+              {value}
+            </span>
           </div>
         </CardContent>
       </Card>
+    </Link>
+  );
+}
+
+export default function Dashboard() {
+  const {data: customersResult} = useCustomers({limit: 1});
+  const {data: materialsResult} = useMaterials({limit: 1});
+  const {data: servicesResult} = useServices({limit: 1});
+  const {data: vehiclesResult} = useVehicles({limit: 1});
+  const {data: workersResult} = useWorkers({limit: 1});
+  const {data: deliveryNotes = [], isLoading, error} = useDeliveryNotes();
+
+  const signed = deliveryNotes.filter(
+    (d: {signed: boolean}) => d.signed,
+  ).length;
+  const unsigned = deliveryNotes.length - signed;
+
+  return (
+    <div className="flex w-full flex-col gap-6">
+      <TitleSegment path="/" />
+      <RenderWhenLoad isLoading={isLoading} error={error}>
+        <div className="flex flex-col gap-6 py-4">
+          <section className="flex flex-col gap-3">
+            <h2 className="text-sm font-medium text-muted-foreground">
+              Albaranes
+            </h2>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <StatCard
+                title="Total albaranes"
+                value={deliveryNotes.length}
+                icon={IconFileText}
+                to="/albaranes"
+              />
+              <StatCard
+                title="Firmados"
+                value={signed}
+                icon={IconCircleCheck}
+                to="/albaranes"
+                iconClassName="bg-emerald-100 text-emerald-700"
+              />
+              <StatCard
+                title="Pendientes de firma"
+                value={unsigned}
+                icon={IconClockHour4}
+                to="/albaranes"
+                iconClassName="bg-amber-100 text-amber-700"
+              />
+            </div>
+          </section>
+
+          <section className="flex flex-col gap-3">
+            <h2 className="text-sm font-medium text-muted-foreground">
+              Mantenimiento
+            </h2>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <StatCard
+                title="Clientes"
+                value={customersResult?.total ?? 0}
+                icon={IconBuilding}
+                to="/mantenimiento/clientes"
+              />
+              <StatCard
+                title="Materiales"
+                value={materialsResult?.total ?? 0}
+                icon={IconPackage}
+                to="/mantenimiento/materiales"
+              />
+              <StatCard
+                title="Servicios"
+                value={servicesResult?.total ?? 0}
+                icon={IconTool}
+                to="/mantenimiento/servicios"
+              />
+              <StatCard
+                title="Vehículos"
+                value={vehiclesResult?.total ?? 0}
+                icon={IconTruck}
+                to="/mantenimiento/vehiculos"
+              />
+              <StatCard
+                title="Operarios"
+                value={workersResult?.total ?? 0}
+                icon={IconUsers}
+                to="/mantenimiento/operarios"
+              />
+            </div>
+          </section>
+        </div>
+      </RenderWhenLoad>
     </div>
   );
 }

@@ -1,7 +1,11 @@
 import {BrowserRouter, Routes, Route, Navigate} from "react-router-dom";
 import {QueryClient, QueryClientProvider} from "@tanstack/react-query";
-import {ToastProvider} from "@/components/ui/toast";
-import {AuthProvider, useAuth} from "@/contexts/AuthContext";
+import {Toaster} from "@/components/ui/sonner";
+import {TooltipProvider} from "@/components/ui/tooltip";
+import ConfirmDialog from "@/components/ConfirmDialog";
+import Loader from "@/components/Loader";
+import {AuthProvider} from "@/contexts/AuthContext";
+import {useAuth} from "@/hooks/useAuth";
 import MainLayout from "@/layouts/MainLayout";
 import Dashboard from "@/pages/Dashboard";
 import LoginPage from "@/pages/LoginPage";
@@ -32,8 +36,8 @@ function ProtectedRoute({children}: {children: React.ReactNode}) {
 
   if (isLoading) {
     return (
-      <div className="flex h-screen items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      <div className="flex h-svh items-center justify-center">
+        <Loader />
       </div>
     );
   }
@@ -50,8 +54,8 @@ function PublicRoute({children}: {children: React.ReactNode}) {
 
   if (isLoading) {
     return (
-      <div className="flex h-screen items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      <div className="flex h-svh items-center justify-center">
+        <Loader />
       </div>
     );
   }
@@ -65,8 +69,10 @@ function PublicRoute({children}: {children: React.ReactNode}) {
 
 export default function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <ToastProvider>
+    <TooltipProvider>
+      <QueryClientProvider client={queryClient}>
+        <Toaster />
+        <ConfirmDialog />
         <BrowserRouter>
           <AuthProvider>
             <Routes>
@@ -146,7 +152,7 @@ export default function App() {
             </Routes>
           </AuthProvider>
         </BrowserRouter>
-      </ToastProvider>
-    </QueryClientProvider>
+      </QueryClientProvider>
+    </TooltipProvider>
   );
 }

@@ -1,20 +1,21 @@
 import {useState} from "react";
 import {type ColumnDef} from "@tanstack/react-table";
 import {useForm} from "@tanstack/react-form";
+import {IconUserCog} from "@tabler/icons-react";
+import {toast} from "sonner";
 import CrudPage from "@/components/CrudPage";
+import FormModal from "@/components/FormModal";
+import {AppInput} from "@/components/ui/app-input";
 import {
   useUsers,
   useCreateUser,
   useUpdateUser,
   useDeleteUser,
 } from "@/hooks/useQueries";
-import {useAuth} from "@/contexts/AuthContext";
-import {DialogHeader, DialogTitle} from "@/components/ui/dialog";
-import {Label} from "@/components/ui/label";
-import {Input} from "@/components/ui/input";
-import {Button} from "@/components/ui/button";
+import {useAuth} from "@/hooks/useAuth";
+import {getErrorMessage} from "@/lib/errors";
+import {fieldErrorProps} from "@/lib/form";
 import {userSchema} from "./validations";
-import {FieldError} from "@/components/ui/field-error";
 
 interface User {
   id: string;
@@ -27,128 +28,110 @@ const columns: ColumnDef<User, unknown>[] = [
   {accessorKey: "email", header: "Email"},
 ];
 
-function UserForm({
-  item,
-  onClose,
-}: {
-  item: User | null;
-  onClose: () => void;
-}) {
+function UserForm({item, onClose}: {item: User | null; onClose: () => void}) {
   const createMutation = useCreateUser();
   const updateMutation = useUpdateUser();
-  const isEditing = !!item;
 
   const form = useForm({
     defaultValues: {
       name: item?.name ?? "",
       email: item?.email ?? "",
     },
-    validators: {
-      onSubmit: userSchema,
-    },
+    validators: {onSubmit: userSchema},
     onSubmit: async ({value}) => {
-      if (item) {
-        await updateMutation.mutateAsync({
-          id: item.id,
-          data: {name: value.name, email: value.email},
-        });
-      } else {
-        await createMutation.mutateAsync(value);
+      try {
+        if (item) {
+          await updateMutation.mutateAsync({id: item.id, data: value});
+          toast.success("Cambios guardados");
+        } else {
+          await createMutation.mutateAsync(value);
+          toast.success(
+            "Usuario creado. Se ha enviado el correo para crear la contraseña",
+          );
+        }
+        onClose();
+      } catch (err) {
+        toast.error(getErrorMessage(err, "Error al guardar el usuario"));
       }
-      onClose();
     },
   });
 
-  const isPending = createMutation.isPending || updateMutation.isPending;
-
   return (
-    <form
-      onSubmit={(e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        form.handleSubmit();
-      }}
+    <FormModal
+      title={item ? "Editar usuario" : "Nuevo usuario"}
+      icon={<IconUserCog size={20} className="text-primary" />}
+      isPending={createMutation.isPending || updateMutation.isPending}
+      onCancel={onClose}
+      onSubmit={form.handleSubmit}
     >
-      <DialogHeader>
-        <DialogTitle>{item ? "Editar Usuario" : "Nuevo Usuario"}</DialogTitle>
-      </DialogHeader>
-      <div className="grid gap-4 py-4">
-        <form.Field name="name">
-          {(field) => (
-            <div className="grid gap-2">
-              <Label htmlFor="name">Nombre</Label>
-              <Input
-                id="name"
-                value={field.state.value}
-                onChange={(e) => field.handleChange(e.target.value)}
-                onBlur={field.handleBlur}
-              />
-              <FieldError field={field} />
-            </div>
-          )}
-        </form.Field>
-        <form.Field name="email">
-          {(field) => (
-            <div className="grid gap-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                value={field.state.value}
-                onChange={(e) => field.handleChange(e.target.value)}
-                onBlur={field.handleBlur}
-              />
-              <FieldError field={field} />
-            </div>
-          )}
-        </form.Field>
-        {!isEditing && (
-          <p className="text-sm text-muted-foreground">
-            Se enviará un email al usuario para que establezca su contraseña.
-          </p>
+      <form.Field name="name">
+        {(field) => (
+          <AppInput
+            label="Nombre"
+            isRequired
+            value={field.state.value}
+            onChange={(e) => field.handleChange(e.target.value)}
+            onBlur={field.handleBlur}
+            {...fieldErrorProps(field)}
+          />
         )}
-      </div>
-      <div className="flex justify-end gap-2">
-        <Button type="button" variant="outline" onClick={onClose}>
-          Cancelar
-        </Button>
-        <form.Subscribe selector={(state) => [state.canSubmit]}>
-          {([canSubmit]) => (
-            <Button type="submit" disabled={!canSubmit || isPending}>
-              {isPending ? "Guardando..." : "Guardar"}
-            </Button>
-          )}
-        </form.Subscribe>
-      </div>
-    </form>
+      </form.Field>
+      <form.Field name="email">
+        {(field) => (
+          <AppInput
+            label="Email"
+            type="email"
+            isRequired
+            value={field.state.value}
+            onChange={(e) => field.handleChange(e.target.value)}
+            onBlur={field.handleBlur}
+            {...fieldErrorProps(field)}
+          />
+        )}
+      </form.Field>
+      {!item && (
+        <p className="text-sm text-muted-foreground">
+          Se enviará un email al usuario para que establezca su contraseña.
+        </p>
+      )}
+    </FormModal>
   );
 }
 
 export default function UsersPage() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
-  const {data: result, isLoading} = useUsers({page, limit: 10, search: search || undefined});
+  const {data: result, isLoading, error} = useUsers({
+    page,
+    limit: 10,
+    search: search || undefined,
+  });
   const deleteMutation = useDeleteUser();
   const {user: currentUser} = useAuth();
 
   return (
     <CrudPage<User>
-      title="Usuarios"
-      description="Gestión de usuarios"
+      path="/mantenimiento/usuarios"
+      addLabel="Añadir nuevo usuario"
+      totalLabel="Total usuarios"
+      entityName="usuario"
       columns={columns}
       data={result?.data ?? []}
       total={result?.total ?? 0}
       page={result?.page ?? page}
       limit={result?.limit ?? 10}
       isLoading={isLoading}
+      error={error}
       onPageChange={setPage}
-      onSearchChange={(s) => { setSearch(s); setPage(1); }}
+      onSearchChange={(s) => {
+        setSearch(s);
+        setPage(1);
+      }}
       deleteMutation={deleteMutation}
       getId={(item) => item.id}
+      getLabel={(item) => `${item.name} (${item.email})`}
       canDelete={(item) => item.id !== currentUser?.id}
-      renderForm={(item, onClose) => (
-        <UserForm item={item} onClose={onClose} />
-      )}
+      renderForm={(item, onClose) => <UserForm item={item} onClose={onClose} />}
     />
   );
 }

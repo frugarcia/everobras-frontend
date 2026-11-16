@@ -1,19 +1,20 @@
 import {useState} from "react";
 import {type ColumnDef} from "@tanstack/react-table";
 import {useForm} from "@tanstack/react-form";
+import {IconUsers} from "@tabler/icons-react";
+import {toast} from "sonner";
 import CrudPage from "@/components/CrudPage";
+import FormModal from "@/components/FormModal";
+import {AppInput} from "@/components/ui/app-input";
 import {
   useWorkers,
   useCreateWorker,
   useUpdateWorker,
   useDeleteWorker,
 } from "@/hooks/useQueries";
-import {DialogHeader, DialogTitle} from "@/components/ui/dialog";
-import {Label} from "@/components/ui/label";
-import {Input} from "@/components/ui/input";
-import {Button} from "@/components/ui/button";
+import {getErrorMessage} from "@/lib/errors";
+import {fieldErrorProps} from "@/lib/form";
 import {workerSchema} from "./validations";
-import {FieldError} from "@/components/ui/field-error";
 
 interface Worker {
   id: string;
@@ -30,13 +31,7 @@ const columns: ColumnDef<Worker, unknown>[] = [
   {accessorKey: "email", header: "Email"},
 ];
 
-function WorkerForm({
-  item,
-  onClose,
-}: {
-  item: Worker | null;
-  onClose: () => void;
-}) {
+function WorkerForm({item, onClose}: {item: Worker | null; onClose: () => void}) {
   const createMutation = useCreateWorker();
   const updateMutation = useUpdateWorker();
 
@@ -49,130 +44,112 @@ function WorkerForm({
     },
     validators: {onSubmit: workerSchema},
     onSubmit: async ({value}) => {
-      if (item) {
-        await updateMutation.mutateAsync({id: item.id, data: value});
-      } else {
-        await createMutation.mutateAsync(value);
+      try {
+        if (item) {
+          await updateMutation.mutateAsync({id: item.id, data: value});
+        } else {
+          await createMutation.mutateAsync(value);
+        }
+        toast.success(item ? "Cambios guardados" : "Registro creado correctamente");
+        onClose();
+      } catch (err) {
+        toast.error(getErrorMessage(err, "Error al guardar el registro"));
       }
-      onClose();
     },
   });
 
-  const isPending = createMutation.isPending || updateMutation.isPending;
-
   return (
-    <form
-      onSubmit={(e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        form.handleSubmit();
-      }}
+    <FormModal
+      title={item ? "Editar operario" : "Nuevo operario"}
+      icon={<IconUsers size={20} className="text-primary" />}
+      isPending={createMutation.isPending || updateMutation.isPending}
+      onCancel={onClose}
+      onSubmit={form.handleSubmit}
     >
-      <DialogHeader>
-        <DialogTitle>{item ? "Editar Operario" : "Nuevo Operario"}</DialogTitle>
-      </DialogHeader>
-      <div className="grid gap-4 py-4">
-        <div className="grid grid-cols-2 gap-4">
-          <form.Field name="firstName">
-            {(field) => (
-              <div className="grid gap-2">
-                <Label htmlFor="firstName">Nombre</Label>
-                <Input
-                  id="firstName"
-                  value={field.state.value}
-                  onChange={(e) => field.handleChange(e.target.value)}
-                  onBlur={field.handleBlur}
-                />
-                <FieldError field={field} />
-              </div>
-            )}
-          </form.Field>
-          <form.Field name="lastName">
-            {(field) => (
-              <div className="grid gap-2">
-                <Label htmlFor="lastName">Apellidos</Label>
-                <Input
-                  id="lastName"
-                  value={field.state.value}
-                  onChange={(e) => field.handleChange(e.target.value)}
-                  onBlur={field.handleBlur}
-                />
-                <FieldError field={field} />
-              </div>
-            )}
-          </form.Field>
-        </div>
-        <div className="grid grid-cols-2 gap-4">
-          <form.Field name="dni">
-            {(field) => (
-              <div className="grid gap-2">
-                <Label htmlFor="dni">DNI</Label>
-                <Input
-                  id="dni"
-                  value={field.state.value}
-                  onChange={(e) => field.handleChange(e.target.value)}
-                  onBlur={field.handleBlur}
-                />
-                <FieldError field={field} />
-              </div>
-            )}
-          </form.Field>
-          <form.Field name="email">
-            {(field) => (
-              <div className="grid gap-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={field.state.value}
-                  onChange={(e) => field.handleChange(e.target.value)}
-                  onBlur={field.handleBlur}
-                />
-                <FieldError field={field} />
-              </div>
-            )}
-          </form.Field>
-        </div>
-      </div>
-      <div className="flex justify-end gap-2">
-        <Button type="button" variant="outline" onClick={onClose}>
-          Cancelar
-        </Button>
-        <form.Subscribe selector={(state) => [state.canSubmit]}>
-          {([canSubmit]) => (
-            <Button type="submit" disabled={!canSubmit || isPending}>
-              {isPending ? "Guardando..." : "Guardar"}
-            </Button>
+        <form.Field name="firstName">
+          {(field) => (
+            <AppInput
+              label="Nombre"
+              isRequired
+              value={field.state.value}
+              onChange={(e) => field.handleChange(e.target.value)}
+              onBlur={field.handleBlur}
+              {...fieldErrorProps(field)}
+            />
           )}
-        </form.Subscribe>
-      </div>
-    </form>
+        </form.Field>
+        <form.Field name="lastName">
+          {(field) => (
+            <AppInput
+              label="Apellidos"
+              isRequired
+              value={field.state.value}
+              onChange={(e) => field.handleChange(e.target.value)}
+              onBlur={field.handleBlur}
+              {...fieldErrorProps(field)}
+            />
+          )}
+        </form.Field>
+        <form.Field name="dni">
+          {(field) => (
+            <AppInput
+              label="DNI"
+              isRequired
+              value={field.state.value}
+              onChange={(e) => field.handleChange(e.target.value)}
+              onBlur={field.handleBlur}
+              {...fieldErrorProps(field)}
+            />
+          )}
+        </form.Field>
+        <form.Field name="email">
+          {(field) => (
+            <AppInput
+              label="Email" type="email"
+              isRequired
+              value={field.state.value}
+              onChange={(e) => field.handleChange(e.target.value)}
+              onBlur={field.handleBlur}
+              {...fieldErrorProps(field)}
+            />
+          )}
+        </form.Field>
+    </FormModal>
   );
 }
 
 export default function WorkersPage() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
-  const {data: result, isLoading} = useWorkers({page, limit: 10, search: search || undefined});
+  const {data: result, isLoading, error} = useWorkers({
+    page,
+    limit: 10,
+    search: search || undefined,
+  });
   const deleteMutation = useDeleteWorker();
 
   return (
     <CrudPage<Worker>
-      title="Operarios"
-      description="Gestión de operarios"
+      path="/mantenimiento/operarios"
+      addLabel="Añadir nuevo operario"
+      totalLabel="Total operarios"
+      entityName="operario"
       columns={columns}
       data={result?.data ?? []}
       total={result?.total ?? 0}
       page={result?.page ?? page}
       limit={result?.limit ?? 10}
       isLoading={isLoading}
+      error={error}
       onPageChange={setPage}
-      onSearchChange={(s) => { setSearch(s); setPage(1); }}
+      onSearchChange={(s) => {
+        setSearch(s);
+        setPage(1);
+      }}
       deleteMutation={deleteMutation}
       getId={(item) => item.id}
-      renderForm={(item, onClose) => (
-        <WorkerForm item={item} onClose={onClose} />
-      )}
+      getLabel={(item) => `${item.firstName} ${item.lastName}`}
+      renderForm={(item, onClose) => <WorkerForm item={item} onClose={onClose} />}
     />
   );
 }

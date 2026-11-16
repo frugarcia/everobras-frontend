@@ -1,4 +1,9 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  keepPreviousData,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import {
   customersApi,
   projectsApi,
@@ -48,6 +53,7 @@ export const queryKeys = {
 export function useCustomers(params?: PaginationParams) {
   return useQuery({
     queryKey: queryKeys.customers(params),
+    placeholderData: keepPreviousData,
     queryFn: () => customersApi.getAll(params),
   });
 }
@@ -85,6 +91,7 @@ export function useDeleteCustomer() {
 export function useProjects(params?: PaginationParams) {
   return useQuery({
     queryKey: queryKeys.projects(params),
+    placeholderData: keepPreviousData,
     queryFn: () => projectsApi.getAll(params),
   });
 }
@@ -122,6 +129,7 @@ export function useDeleteProject() {
 export function useMaterials(params?: PaginationParams) {
   return useQuery({
     queryKey: queryKeys.materials(params),
+    placeholderData: keepPreviousData,
     queryFn: () => materialsApi.getAll(params),
   });
 }
@@ -154,6 +162,7 @@ export function useDeleteMaterial() {
 export function useServices(params?: PaginationParams) {
   return useQuery({
     queryKey: queryKeys.services(params),
+    placeholderData: keepPreviousData,
     queryFn: () => servicesApi.getAll(params),
   });
 }
@@ -186,6 +195,7 @@ export function useDeleteService() {
 export function useVehicles(params?: PaginationParams) {
   return useQuery({
     queryKey: queryKeys.vehicles(params),
+    placeholderData: keepPreviousData,
     queryFn: () => vehiclesApi.getAll(params),
   });
 }
@@ -219,6 +229,7 @@ export function useDeleteVehicle() {
 export function useWorkers(params?: PaginationParams) {
   return useQuery({
     queryKey: queryKeys.workers(params),
+    placeholderData: keepPreviousData,
     queryFn: () => workersApi.getAll(params),
   });
 }
@@ -298,6 +309,7 @@ export function useDeleteDeliveryNote() {
 export function useUsers(params?: PaginationParams) {
   return useQuery({
     queryKey: queryKeys.users(params),
+    placeholderData: keepPreviousData,
     queryFn: () => usersApi.getAll(params),
   });
 }

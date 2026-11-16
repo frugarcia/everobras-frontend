@@ -1,239 +1,193 @@
-import { useState, useEffect } from "react";
+import {useEffect, useRef, useState, type ReactNode} from "react";
 import {
-  useReactTable,
   getCoreRowModel,
-  flexRender,
+  useReactTable,
   type ColumnDef,
 } from "@tanstack/react-table";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Plus, Search, ChevronLeft, ChevronRight, Pencil, Trash2 } from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import { useToast } from "@/components/ui/toast";
-import axios from "axios";
-import type { UseMutationResult } from "@tanstack/react-query";
+import {IconEdit, IconPlus, IconTrash} from "@tabler/icons-react";
+import type {UseMutationResult} from "@tanstack/react-query";
+import {toast} from "sonner";
+import ButtonBordered from "@/components/ButtonBordered";
+import ButtonTable from "@/components/ButtonTable";
+import Modal, {ModalContent} from "@/components/Modal";
+import Table from "@/components/Table";
+import TitleSegment from "@/components/TitleSegment";
+import {AppInput} from "@/components/ui/app-input";
+import {getErrorMessage} from "@/lib/errors";
+import useModalStore from "@/store/useModalStore";
 
 interface CrudPageProps<T> {
-  title: string;
-  description: string;
+  /** Ruta de la sección (para el título con icono). */
+  path: string;
+  /** Texto del botón de alta, p. ej. "Añadir nuevo cliente". */
+  addLabel: string;
+  /** Etiqueta del total, p. ej. "Total clientes". */
+  totalLabel: string;
+  /** Nombre en singular para el diálogo de borrado, p. ej. "cliente". */
+  entityName: string;
+  /** Si el nombre es femenino ("obra") para concordar "esta"/"este". */
+  entityFeminine?: boolean;
   columns: ColumnDef<T, unknown>[];
   data: T[];
   total: number;
   page: number;
   limit: number;
   isLoading: boolean;
+  error?: unknown;
   onPageChange: (page: number) => void;
   onSearchChange: (search: string) => void;
   deleteMutation: UseMutationResult<unknown, Error, string>;
-  renderForm: (item: T | null, onClose: () => void) => React.ReactNode;
+  renderForm: (item: T | null, onClose: () => void) => ReactNode;
   getId: (item: T) => string;
+  /** Texto que identifica el registro en el diálogo de borrado. */
+  getLabel: (item: T) => string;
   canDelete?: (item: T) => boolean;
 }
 
 export default function CrudPage<T>({
-  title,
-  description,
+  path,
+  addLabel,
+  totalLabel,
+  entityName,
+  entityFeminine = false,
   columns,
   data,
   total,
   page,
   limit,
   isLoading,
+  error,
   onPageChange,
   onSearchChange,
   deleteMutation,
   renderForm,
   getId,
+  getLabel,
   canDelete,
 }: CrudPageProps<T>) {
   const [searchInput, setSearchInput] = useState("");
-  const [editItem, setEditItem] = useState<T | null | undefined>(undefined); // undefined=closed, null=new, T=edit
-  const [deleteItem, setDeleteItem] = useState<T | null>(null);
-  const { showToast } = useToast();
+  // undefined = cerrado, null = nuevo, T = editar
+  const [editItem, setEditItem] = useState<T | null | undefined>(undefined);
+  const handleLaunchModal = useModalStore((state) => state.handleLaunchModal);
 
-  // Debounced search
+  // Búsqueda con debounce. El callback va en un ref para que el efecto solo
+  // dependa del texto (si no, cada render relanzaba la búsqueda y volvía a la página 1).
+  const onSearchChangeRef = useRef(onSearchChange);
+  onSearchChangeRef.current = onSearchChange;
+  const isFirstSearch = useRef(true);
   useEffect(() => {
-    const timer = setTimeout(() => {
-      onSearchChange(searchInput);
-    }, 300);
+    if (isFirstSearch.current) {
+      isFirstSearch.current = false;
+      return;
+    }
+    const timer = setTimeout(() => onSearchChangeRef.current(searchInput), 300);
     return () => clearTimeout(timer);
-  }, [searchInput, onSearchChange]);
+  }, [searchInput]);
+
+  function confirmDelete(item: T) {
+    handleLaunchModal({
+      title: `Eliminar ${entityName}`,
+      text: `¿Está seguro que desea eliminar ${entityFeminine ? "esta" : "este"} ${entityName}?`,
+      description: getLabel(item),
+      subText: "Esta acción no se podrá deshacer.",
+      type: "delete",
+      promise: async () => {
+        try {
+          await deleteMutation.mutateAsync(getId(item));
+          toast.success("Registro eliminado correctamente");
+        } catch (err) {
+          toast.error(getErrorMessage(err, "Error al eliminar el registro"));
+        }
+      },
+    });
+  }
 
   const allColumns: ColumnDef<T, unknown>[] = [
-    ...columns,
     {
       id: "actions",
-      header: "",
-      cell: ({ row }) => (
-        <div className="flex gap-1 justify-end">
-          <Button variant="ghost" size="icon" onClick={() => setEditItem(row.original)}>
-            <Pencil className="h-4 w-4" />
-          </Button>
-          {(!canDelete || canDelete(row.original)) && (
-            <Button variant="ghost" size="icon" onClick={() => setDeleteItem(row.original)}>
-              <Trash2 className="h-4 w-4 text-destructive" />
-            </Button>
-          )}
+      header: "Acciones",
+      meta: {headerClassName: "w-24 text-center"},
+      cell: ({row}) => (
+        <div className="flex items-center justify-center gap-2">
+          <ButtonTable
+            tooltip="Editar"
+            icon={<IconEdit size={20} className="stroke-blue-700" />}
+            onClick={() => setEditItem(row.original)}
+          />
+          <ButtonTable
+            tooltip="Eliminar"
+            isDisabled={canDelete ? !canDelete(row.original) : false}
+            icon={<IconTrash size={20} className="stroke-red-600" />}
+            onClick={() => confirmDelete(row.original)}
+          />
         </div>
       ),
     },
+    ...columns,
   ];
 
   const table = useReactTable({
-    data: data ?? [],
+    data,
     columns: allColumns,
     getCoreRowModel: getCoreRowModel(),
+    enableSorting: false,
     manualPagination: true,
-    pageCount: Math.ceil(total / limit),
+    rowCount: total,
+    state: {pagination: {pageIndex: page - 1, pageSize: limit}},
+    onPaginationChange: (updater) => {
+      const next =
+        typeof updater === "function"
+          ? updater({pageIndex: page - 1, pageSize: limit})
+          : updater;
+      onPageChange(next.pageIndex + 1);
+    },
+    meta: {isLoading},
   });
 
-  const totalPages = Math.ceil(total / limit) || 1;
-
-  const handleDelete = async () => {
-    if (!deleteItem) return;
-    try {
-      await deleteMutation.mutateAsync(getId(deleteItem));
-      setDeleteItem(null);
-    } catch (err) {
-      setDeleteItem(null);
-      if (axios.isAxiosError(err) && err.response?.data?.error) {
-        showToast(err.response.data.error, "error");
-      } else {
-        showToast("Error al eliminar el registro", "error");
-      }
-    }
-  };
-
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">{title}</h1>
-          <p className="text-muted-foreground mt-1">{description}</p>
-        </div>
-        <Button onClick={() => setEditItem(null)} className="gap-2">
-          <Plus className="h-4 w-4" />
-          Nuevo
-        </Button>
-      </div>
-
-      {/* Search */}
-      <div className="relative max-w-sm">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          placeholder="Buscar..."
-          value={searchInput}
-          onChange={(e) => setSearchInput(e.target.value)}
-          className="pl-9"
+    <div className="flex w-full flex-col gap-6">
+      <TitleSegment path={path} />
+      <div className="flex flex-col gap-6 py-4">
+        <ButtonBordered
+          label={addLabel}
+          color="green-600"
+          onPress={() => setEditItem(null)}
+          startContent={<IconPlus />}
+          className="w-fit"
         />
+        <AppInput
+          type="text"
+          label="Buscar..."
+          placeholder="Introduzca el texto a buscar..."
+          value={searchInput}
+          onChange={(ev) => setSearchInput(ev.target.value)}
+          isClearable
+          onClear={() => setSearchInput("")}
+        />
+        {error ? (
+          <p className="text-sm text-destructive">
+            {getErrorMessage(error, "Error al cargar los datos")}
+          </p>
+        ) : (
+          <div className="flex flex-col gap-4">
+            <p className="text-sm font-medium text-muted-foreground">
+              {totalLabel}: {total}
+            </p>
+            <Table title={totalLabel} config={table} />
+          </div>
+        )}
       </div>
 
-      {/* Table */}
-      <div className="rounded-lg border">
-        <Table>
-          <TableHeader>
-            {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id}>
-                {headerGroup.headers.map((header) => (
-                  <TableHead key={header.id}>
-                    {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
-                  </TableHead>
-                ))}
-              </TableRow>
-            ))}
-          </TableHeader>
-          <TableBody>
-            {isLoading ? (
-              <TableRow>
-                <TableCell colSpan={allColumns.length} className="h-24 text-center">
-                  <div className="flex justify-center">
-                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary" />
-                  </div>
-                </TableCell>
-              </TableRow>
-            ) : table.getRowModel().rows.length ? (
-              table.getRowModel().rows.map((row) => (
-                <TableRow key={row.id}>
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </TableCell>
-                  ))}
-                </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell colSpan={allColumns.length} className="h-24 text-center text-muted-foreground">
-                  No se encontraron resultados.
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </div>
-
-      {/* Pagination */}
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-muted-foreground">
-          {total} registro(s)
-        </p>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => onPageChange(page - 1)}
-            disabled={page <= 1}
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <span className="text-sm">
-            Página {page} de {totalPages}
-          </span>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => onPageChange(page + 1)}
-            disabled={page >= totalPages}
-          >
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-        </div>
-      </div>
-
-      {/* Create/Edit Dialog */}
-      <Dialog open={editItem !== undefined} onOpenChange={(open) => !open && setEditItem(undefined)}>
-        <DialogContent>
-          {editItem !== undefined && renderForm(editItem, () => setEditItem(undefined))}
-        </DialogContent>
-      </Dialog>
-
-      {/* Delete Confirmation */}
-      <Dialog open={deleteItem !== null} onOpenChange={(open) => !open && setDeleteItem(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Confirmar eliminación</DialogTitle>
-            <DialogDescription>
-              ¿Estás seguro de que deseas eliminar este registro? Esta acción no se puede deshacer.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteItem(null)}>
-              Cancelar
-            </Button>
-            <Button variant="destructive" onClick={handleDelete} disabled={deleteMutation.isPending}>
-              {deleteMutation.isPending ? "Eliminando..." : "Eliminar"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <Modal
+        isOpen={editItem !== undefined}
+        onClose={() => setEditItem(undefined)}
+        size="lg"
+      >
+        <ModalContent>
+          {editItem !== undefined &&
+            renderForm(editItem, () => setEditItem(undefined))}
+        </ModalContent>
+      </Modal>
     </div>
   );
 }

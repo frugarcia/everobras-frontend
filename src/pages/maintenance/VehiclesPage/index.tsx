@@ -27,7 +27,15 @@ const columns: ColumnDef<Vehicle, unknown>[] = [
   {accessorKey: "plate", header: "Matrícula"},
 ];
 
-function VehicleForm({item, onClose}: {item: Vehicle | null; onClose: () => void}) {
+export function VehicleForm({
+  item,
+  onClose,
+  onCreated,
+}: {
+  item: Vehicle | null
+  onClose: () => void
+  onCreated?: (id: string) => void
+}) {
   const createMutation = useCreateVehicle();
   const updateMutation = useUpdateVehicle();
 
@@ -42,7 +50,8 @@ function VehicleForm({item, onClose}: {item: Vehicle | null; onClose: () => void
         if (item) {
           await updateMutation.mutateAsync({id: item.id, data: value});
         } else {
-          await createMutation.mutateAsync(value);
+          const created = await createMutation.mutateAsync(value);
+          onCreated?.(created.id);
         }
         toast.success(item ? "Cambios guardados" : "Registro creado correctamente");
         onClose();

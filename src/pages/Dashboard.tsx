@@ -2,7 +2,9 @@ import {Link} from "react-router-dom";
 import {
   IconBuilding,
   IconCircleCheck,
+  IconClipboardList,
   IconClockHour4,
+  IconFileInvoice,
   IconFileText,
   IconPackage,
   IconTool,
@@ -17,6 +19,8 @@ import {cn} from "@/lib/utils";
 import {
   useCustomers,
   useDeliveryNotes,
+  useInternalParts,
+  useProformas,
   useMaterials,
   useServices,
   useVehicles,
@@ -69,24 +73,41 @@ export default function Dashboard() {
   const {data: vehiclesResult} = useVehicles({limit: 1});
   const {data: workersResult} = useWorkers({limit: 1});
   const {data: deliveryNotes = [], isLoading, error} = useDeliveryNotes();
+  const {
+    data: internalParts = [],
+    isLoading: partsLoading,
+    error: partsError,
+  } = useInternalParts();
+  const {
+    data: proformas = [],
+    isLoading: proformasLoading,
+    error: proformasError,
+  } = useProformas();
 
   const signed = deliveryNotes.filter(
     (d: {signed: boolean}) => d.signed,
   ).length;
   const unsigned = deliveryNotes.length - signed;
+  const machinery = internalParts.filter(
+    (part: {type: string}) => part.type === "MAQUINARIA",
+  ).length;
+  const trucks = internalParts.length - machinery;
 
   return (
     <div className="flex w-full flex-col gap-6">
       <TitleSegment path="/" />
-      <RenderWhenLoad isLoading={isLoading} error={error}>
+      <RenderWhenLoad
+        isLoading={isLoading || partsLoading || proformasLoading}
+        error={error ?? partsError ?? proformasError}
+      >
         <div className="flex flex-col gap-6 py-4">
           <section className="flex flex-col gap-3">
             <h2 className="text-sm font-medium text-muted-foreground">
-              Albaranes
+              Albaranes de venta
             </h2>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               <StatCard
-                title="Total albaranes"
+                title="Total albaranes de venta"
                 value={deliveryNotes.length}
                 icon={IconFileText}
                 to="/albaranes"
@@ -104,6 +125,48 @@ export default function Dashboard() {
                 icon={IconClockHour4}
                 to="/albaranes"
                 iconClassName="bg-amber-100 text-amber-700"
+              />
+            </div>
+          </section>
+
+          <section className="flex flex-col gap-3">
+            <h2 className="text-sm font-medium text-muted-foreground">
+              Proformas
+            </h2>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <StatCard
+                title="Total proformas"
+                value={proformas.length}
+                icon={IconFileInvoice}
+                to="/proformas"
+              />
+            </div>
+          </section>
+
+          <section className="flex flex-col gap-3">
+            <h2 className="text-sm font-medium text-muted-foreground">
+              Partes internos
+            </h2>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <StatCard
+                title="Total partes internos"
+                value={internalParts.length}
+                icon={IconClipboardList}
+                to="/partes-internos"
+              />
+              <StatCard
+                title="Maquinaria"
+                value={machinery}
+                icon={IconClipboardList}
+                to="/partes-internos"
+                iconClassName="bg-violet-100 text-violet-700"
+              />
+              <StatCard
+                title="Camiones"
+                value={trucks}
+                icon={IconTruck}
+                to="/partes-internos"
+                iconClassName="bg-sky-100 text-sky-700"
               />
             </div>
           </section>

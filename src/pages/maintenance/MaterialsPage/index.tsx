@@ -25,7 +25,15 @@ const columns: ColumnDef<Material, unknown>[] = [
   {accessorKey: "name", header: "Nombre del material"},
 ];
 
-function MaterialForm({item, onClose}: {item: Material | null; onClose: () => void}) {
+export function MaterialForm({
+  item,
+  onClose,
+  onCreated,
+}: {
+  item: Material | null
+  onClose: () => void
+  onCreated?: (id: string) => void
+}) {
   const createMutation = useCreateMaterial();
   const updateMutation = useUpdateMaterial();
 
@@ -39,7 +47,8 @@ function MaterialForm({item, onClose}: {item: Material | null; onClose: () => vo
         if (item) {
           await updateMutation.mutateAsync({id: item.id, data: value});
         } else {
-          await createMutation.mutateAsync(value);
+          const created = await createMutation.mutateAsync(value);
+          onCreated?.(created.id);
         }
         toast.success(item ? "Cambios guardados" : "Registro creado correctamente");
         onClose();

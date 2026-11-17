@@ -226,7 +226,46 @@ export const workersApi = {
   delete: (id: string) => api.delete(`/workers/${id}`).then((r) => r.data),
 };
 
+// Suppliers
+export const suppliersApi = {
+  getAll: (params?: {page?: number; limit?: number; search?: string}) =>
+    api.get("/suppliers", {params}).then((r) => r.data),
+  getById: (id: string) => api.get(`/suppliers/${id}`).then((r) => r.data),
+  create: (data: {commercialName: string; legalName: string; cif: string}) =>
+    api.post("/suppliers", data).then((r) => r.data),
+  update: (
+    id: string,
+    data: Partial<{commercialName: string; legalName: string; cif: string}>,
+  ) => api.put(`/suppliers/${id}`, data).then((r) => r.data),
+  delete: (id: string) => api.delete(`/suppliers/${id}`).then((r) => r.data),
+};
+
 // Delivery Notes
+export const internalPartsApi = {
+  getAll: (params?: Record<string, string>) =>
+    api.get("/internal-parts", {params}).then((r) => r.data),
+  getById: (id: string) => api.get(`/internal-parts/${id}`).then((r) => r.data),
+  create: (data: unknown) => api.post("/internal-parts", data).then((r) => r.data),
+  update: (id: string, data: unknown) =>
+    api.put(`/internal-parts/${id}`, data).then((r) => r.data),
+  delete: (id: string) => api.delete(`/internal-parts/${id}`).then((r) => r.data),
+};
+
+export const proformasApi = {
+  getAll: (params?: Record<string, string>) =>
+    api.get("/proformas", {params}).then((r) => r.data),
+  getById: (id: string) => api.get(`/proformas/${id}`).then((r) => r.data),
+  preview: (data: unknown) => api.post("/proformas/preview", data).then((r) => r.data),
+  create: (data: unknown) => api.post("/proformas", data).then((r) => r.data),
+  update: (id: string, data: unknown) =>
+    api.put(`/proformas/${id}`, data).then((r) => r.data),
+  delete: (id: string) => api.delete(`/proformas/${id}`).then((r) => r.data),
+  download: (id: string) =>
+    api
+      .get(`/proformas/${id}/pdf`, {responseType: "blob"})
+      .then((r) => r.data as Blob),
+};
+
 export const deliveryNotesApi = {
   getAll: (params?: Record<string, string>) =>
     api.get("/delivery-notes", {params}).then((r) => r.data),
@@ -238,6 +277,29 @@ export const deliveryNotesApi = {
     api.put(`/delivery-notes/${id}`, data).then((r) => r.data),
   delete: (id: string) =>
     api.delete(`/delivery-notes/${id}`).then((r) => r.data),
+};
+
+export type ScanFolder = "delivery-notes" | "purchase-notes";
+
+export const uploadsApi = {
+  create: (file: File, folder: ScanFolder) => {
+    const body = new FormData();
+    body.append("file", file);
+    body.append("folder", folder);
+    return api
+      .post("/uploads", body, {
+        // Sin este header, axios enviaría JSON y el navegador no pondría el boundary.
+        headers: {"Content-Type": null},
+      })
+      .then(
+        (r) =>
+          r.data as {key: string; fileName: string; contentType: string},
+      );
+  },
+  getBlob: (key: string) =>
+    api
+      .get(`/uploads/${key}`, {responseType: "blob"})
+      .then((r) => r.data as Blob),
 };
 
 // Users

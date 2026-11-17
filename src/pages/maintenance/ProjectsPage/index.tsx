@@ -1,9 +1,10 @@
 import {useState} from "react";
 import {type ColumnDef} from "@tanstack/react-table";
 import {useForm} from "@tanstack/react-form";
-import {IconHelmet} from "@tabler/icons-react";
+import {IconFileInvoice, IconHelmet} from "@tabler/icons-react";
 import {toast} from "sonner";
 import CrudPage from "@/components/CrudPage";
+import LinkTable from "@/components/LinkTable";
 import FormModal from "@/components/FormModal";
 import {AppInput} from "@/components/ui/app-input";
 import {AppSelect} from "@/components/ui/app-select";
@@ -34,12 +35,14 @@ const columns: ColumnDef<Project, unknown>[] = [
   },
 ];
 
-function ProjectForm({
+export function ProjectForm({
   item,
   onClose,
+  onCreated,
 }: {
-  item: Project | null;
-  onClose: () => void;
+  item: Project | null
+  onClose: () => void
+  onCreated?: (id: string) => void
 }) {
   const {data: customersResult} = useCustomers({limit: 9999});
   const customerOptions = (customersResult?.data ?? []).map(
@@ -59,7 +62,8 @@ function ProjectForm({
         if (item) {
           await updateMutation.mutateAsync({id: item.id, data: value});
         } else {
-          await createMutation.mutateAsync(value);
+          const created = await createMutation.mutateAsync(value);
+          onCreated?.(created.id);
         }
         toast.success(item ? "Cambios guardados" : "Registro creado correctamente");
         onClose();
@@ -140,6 +144,13 @@ export default function ProjectsPage() {
       getLabel={(item) => item.name}
       renderForm={(item, onClose) => (
         <ProjectForm item={item} onClose={onClose} />
+      )}
+      renderExtraActions={(item) => (
+        <LinkTable
+          to={`/proformas/nuevo?obra=${item.id}`}
+          tooltip="Crear proforma"
+          icon={<IconFileInvoice size={20} className="stroke-violet-700" />}
+        />
       )}
     />
   );

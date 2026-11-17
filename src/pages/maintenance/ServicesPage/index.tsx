@@ -25,7 +25,15 @@ const columns: ColumnDef<Service, unknown>[] = [
   {accessorKey: "name", header: "Nombre del servicio"},
 ];
 
-function ServiceForm({item, onClose}: {item: Service | null; onClose: () => void}) {
+export function ServiceForm({
+  item,
+  onClose,
+  onCreated,
+}: {
+  item: Service | null
+  onClose: () => void
+  onCreated?: (id: string) => void
+}) {
   const createMutation = useCreateService();
   const updateMutation = useUpdateService();
 
@@ -39,7 +47,8 @@ function ServiceForm({item, onClose}: {item: Service | null; onClose: () => void
         if (item) {
           await updateMutation.mutateAsync({id: item.id, data: value});
         } else {
-          await createMutation.mutateAsync(value);
+          const created = await createMutation.mutateAsync(value);
+          onCreated?.(created.id);
         }
         toast.success(item ? "Cambios guardados" : "Registro creado correctamente");
         onClose();

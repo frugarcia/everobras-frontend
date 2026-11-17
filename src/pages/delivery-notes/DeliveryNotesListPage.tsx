@@ -29,9 +29,7 @@ import useModalStore from "@/store/useModalStore";
 
 interface DeliveryNote {
   id: string;
-  type: string;
-  internalNumber: string | null;
-  externalNumber: string | null;
+  number: string | null;
   date: string;
   signed: boolean;
   vehicle: {id: string; name: string; plate: string} | null;
@@ -39,6 +37,7 @@ interface DeliveryNote {
   project: {id: string; name: string; customer: {id: string; name: string}};
   worker: {id: string; firstName: string; lastName: string};
   lines: unknown[];
+  purchaseNotes: unknown[];
 }
 
 const SIGNED_FILTER_OPTIONS = [
@@ -76,7 +75,7 @@ export default function DeliveryNotesListPage() {
     handleLaunchModal({
       title: "Eliminar albarán",
       text: "¿Está seguro que desea eliminar el albarán seleccionado?",
-      description: `Nº ${note.internalNumber ?? note.externalNumber ?? "—"} · ${note.project?.name ?? ""}`,
+      description: `Nº ${note.number ?? "—"} · ${note.project?.name ?? ""}`,
       subText: "Esta acción no se podrá deshacer.",
       type: "delete",
       promise: async () => {
@@ -119,31 +118,9 @@ export default function DeliveryNotesListPage() {
     {
       id: "number",
       header: "Nº Albarán",
-      accessorFn: (row) =>
-        [row.internalNumber, row.externalNumber].filter(Boolean).join(" "),
+      accessorFn: (row) => row.number ?? "",
       cell: ({row}) => (
-        <div>
-          <span className="font-medium">
-            {row.original.internalNumber ?? "—"}
-          </span>
-          {row.original.externalNumber && (
-            <span className="ml-1 text-xs text-muted-foreground">
-              ({row.original.externalNumber})
-            </span>
-          )}
-        </div>
-      ),
-    },
-    {
-      id: "type",
-      header: "Tipo",
-      accessorKey: "type",
-      cell: ({row}) => (
-        <Badge
-          variant={row.original.type === "INTERNO" ? "secondary" : "outline"}
-        >
-          {row.original.type}
-        </Badge>
+        <span className="font-medium">{row.original.number ?? "—"}</span>
       ),
     },
     {
@@ -195,6 +172,11 @@ export default function DeliveryNotesListPage() {
       header: "Líneas",
       accessorFn: (row) => row.lines?.length ?? 0,
     },
+    {
+      id: "purchaseNotes",
+      header: "Compras",
+      accessorFn: (row) => row.purchaseNotes?.length ?? 0,
+    },
   ];
 
   const table = useReactTable({
@@ -218,7 +200,7 @@ export default function DeliveryNotesListPage() {
       <TitleSegment path="/albaranes" />
       <div className="flex flex-col gap-6 py-4">
         <ButtonBordered
-          label="Añadir nuevo albarán"
+          label="Añadir nuevo albarán de venta"
           color="green-600"
           onPress={() => navigate("/albaranes/nuevo")}
           startContent={<IconPlus />}
@@ -250,9 +232,9 @@ export default function DeliveryNotesListPage() {
         <RenderWhenLoad isLoading={false} error={error}>
           <div className="flex flex-col gap-4">
             <p className="text-sm font-medium text-muted-foreground">
-              Total albaranes: {table.getFilteredRowModel().rows.length}
+              Total albaranes de venta: {table.getFilteredRowModel().rows.length}
             </p>
-            <Table title="Tabla de albaranes" config={table} />
+            <Table title="Tabla de albaranes de venta" config={table} />
           </div>
         </RenderWhenLoad>
       </div>

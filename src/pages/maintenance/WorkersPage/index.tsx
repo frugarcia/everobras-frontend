@@ -31,7 +31,15 @@ const columns: ColumnDef<Worker, unknown>[] = [
   {accessorKey: "email", header: "Email"},
 ];
 
-function WorkerForm({item, onClose}: {item: Worker | null; onClose: () => void}) {
+export function WorkerForm({
+  item,
+  onClose,
+  onCreated,
+}: {
+  item: Worker | null
+  onClose: () => void
+  onCreated?: (id: string) => void
+}) {
   const createMutation = useCreateWorker();
   const updateMutation = useUpdateWorker();
 
@@ -48,7 +56,8 @@ function WorkerForm({item, onClose}: {item: Worker | null; onClose: () => void})
         if (item) {
           await updateMutation.mutateAsync({id: item.id, data: value});
         } else {
-          await createMutation.mutateAsync(value);
+          const created = await createMutation.mutateAsync(value);
+          onCreated?.(created.id);
         }
         toast.success(item ? "Cambios guardados" : "Registro creado correctamente");
         onClose();

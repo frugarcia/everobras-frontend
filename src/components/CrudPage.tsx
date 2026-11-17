@@ -42,6 +42,7 @@ interface CrudPageProps<T> {
   /** Texto que identifica el registro en el diálogo de borrado. */
   getLabel: (item: T) => string;
   canDelete?: (item: T) => boolean;
+  renderExtraActions?: (item: T) => ReactNode;
 }
 
 export default function CrudPage<T>({
@@ -64,6 +65,7 @@ export default function CrudPage<T>({
   getId,
   getLabel,
   canDelete,
+  renderExtraActions,
 }: CrudPageProps<T>) {
   const [searchInput, setSearchInput] = useState("");
   // undefined = cerrado, null = nuevo, T = editar
@@ -106,9 +108,10 @@ export default function CrudPage<T>({
     {
       id: "actions",
       header: "Acciones",
-      meta: {headerClassName: "w-24 text-center"},
+      meta: {headerClassName: "w-36 text-center"},
       cell: ({row}) => (
         <div className="flex items-center justify-center gap-2">
+          {renderExtraActions?.(row.original)}
           <ButtonTable
             tooltip="Editar"
             icon={<IconEdit size={20} className="stroke-blue-700" />}

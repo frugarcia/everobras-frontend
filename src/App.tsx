@@ -12,7 +12,14 @@ import LoginPage from "@/pages/LoginPage";
 import DeliveryNotesListPage from "@/pages/delivery-notes/DeliveryNotesListPage";
 import DeliveryNoteDetailPage from "@/pages/delivery-notes/DeliveryNoteDetailPage";
 import DeliveryNoteFormPage from "@/pages/delivery-notes/DeliveryNoteFormPage";
+import InternalPartsListPage from "@/pages/internal-parts/InternalPartsListPage";
+import InternalPartDetailPage from "@/pages/internal-parts/InternalPartDetailPage";
+import InternalPartFormPage from "@/pages/internal-parts/InternalPartFormPage";
+import ProformasListPage from "@/pages/proformas/ProformasListPage";
+import ProformaDetailPage from "@/pages/proformas/ProformaDetailPage";
+import ProformaFormPage from "@/pages/proformas/ProformaFormPage";
 import CustomersPage from "@/pages/maintenance/CustomersPage";
+import SuppliersPage from "@/pages/maintenance/SuppliersPage";
 import ProjectsPage from "@/pages/maintenance/ProjectsPage";
 import MaterialsPage from "@/pages/maintenance/MaterialsPage";
 import ServicesPage from "@/pages/maintenance/ServicesPage";
@@ -120,9 +127,39 @@ export default function App() {
                   path="/albaranes/:id/editar"
                   element={<DeliveryNoteFormPage key="edit" />}
                 />
+                <Route path="/proformas" element={<ProformasListPage />} />
+                <Route
+                  path="/proformas/nuevo"
+                  element={<ProformaFormPage key="new" />}
+                />
+                <Route path="/proformas/:id" element={<ProformaDetailPage />} />
+                <Route
+                  path="/proformas/:id/editar"
+                  element={<ProformaFormPage key="edit" />}
+                />
+                <Route
+                  path="/partes-internos"
+                  element={<InternalPartsListPage />}
+                />
+                <Route
+                  path="/partes-internos/nuevo"
+                  element={<InternalPartFormPage key="new" />}
+                />
+                <Route
+                  path="/partes-internos/:id"
+                  element={<InternalPartDetailPage />}
+                />
+                <Route
+                  path="/partes-internos/:id/editar"
+                  element={<InternalPartFormPage key="edit" />}
+                />
                 <Route
                   path="/mantenimiento/clientes"
                   element={<CustomersPage />}
+                />
+                <Route
+                  path="/mantenimiento/proveedores"
+                  element={<SuppliersPage />}
                 />
                 <Route
                   path="/mantenimiento/obras"

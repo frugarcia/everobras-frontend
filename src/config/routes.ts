@@ -1,5 +1,8 @@
 import {
   IconBuilding,
+  IconBuildingStore,
+  IconClipboardList,
+  IconFileInvoice,
   IconFileText,
   IconHelmet,
   IconLayoutDashboard,
@@ -21,11 +24,24 @@ export type TNavRoute = {
 /** Entradas del sidebar y títulos de sección (TitleSegment). */
 export const ROUTES: TNavRoute[] = [
   {path: "/", label: "Inicio", icon: IconLayoutDashboard, group: "main"},
-  {path: "/albaranes", label: "Albaranes", icon: IconFileText, group: "main"},
+  {path: "/albaranes", label: "Albaranes de venta", icon: IconFileText, group: "main"},
+  {path: "/proformas", label: "Proformas", icon: IconFileInvoice, group: "main"},
+  {
+    path: "/partes-internos",
+    label: "Partes internos",
+    icon: IconClipboardList,
+    group: "main",
+  },
   {
     path: "/mantenimiento/clientes",
     label: "Clientes",
     icon: IconBuilding,
+    group: "maintenance",
+  },
+  {
+    path: "/mantenimiento/proveedores",
+    label: "Proveedores",
+    icon: IconBuildingStore,
     group: "maintenance",
   },
   {

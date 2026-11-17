@@ -11,7 +11,10 @@ import {
   servicesApi,
   vehiclesApi,
   workersApi,
+  suppliersApi,
   deliveryNotesApi,
+  internalPartsApi,
+  proformasApi,
   usersApi,
 } from "@/lib/api";
 
@@ -43,8 +46,14 @@ export const queryKeys = {
   vehicle: (id: string) => ["vehicles", id] as const,
   workers: (params?: PaginationParams) => ["workers", params] as const,
   worker: (id: string) => ["workers", id] as const,
+  suppliers: (params?: PaginationParams) => ["suppliers", params] as const,
+  supplier: (id: string) => ["suppliers", id] as const,
   deliveryNotes: (params?: Record<string, string>) => ["delivery-notes", params] as const,
   deliveryNote: (id: string) => ["delivery-notes", id] as const,
+  internalParts: (params?: Record<string, string>) => ["internal-parts", params] as const,
+  internalPart: (id: string) => ["internal-parts", id] as const,
+  proformas: (params?: Record<string, string>) => ["proformas", params] as const,
+  proforma: (id: string) => ["proformas", id] as const,
   users: (params?: PaginationParams) => ["users", params] as const,
   user: (id: string) => ["users", id] as const,
 };
@@ -265,11 +274,52 @@ export function useDeleteWorker() {
   });
 }
 
+// ─── Suppliers ─────────────────────────────────────────────
+export function useSuppliers(params?: PaginationParams) {
+  return useQuery({
+    queryKey: queryKeys.suppliers(params),
+    placeholderData: keepPreviousData,
+    queryFn: () => suppliersApi.getAll(params),
+  });
+}
+
+export function useCreateSupplier() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: { commercialName: string; legalName: string; cif: string }) =>
+      suppliersApi.create(data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["suppliers"] }),
+  });
+}
+
+export function useUpdateSupplier() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      data,
+    }: {
+      id: string;
+      data: Partial<{ commercialName: string; legalName: string; cif: string }>;
+    }) => suppliersApi.update(id, data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["suppliers"] }),
+  });
+}
+
+export function useDeleteSupplier() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => suppliersApi.delete(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["suppliers"] }),
+  });
+}
+
 // ─── Delivery Notes ────────────────────────────────────────
-export function useDeliveryNotes(params?: Record<string, string>) {
+export function useDeliveryNotes(params?: Record<string, string>, enabled = true) {
   return useQuery({
     queryKey: queryKeys.deliveryNotes(params),
     queryFn: () => deliveryNotesApi.getAll(params),
+    enabled,
   });
 }
 
@@ -302,6 +352,94 @@ export function useDeleteDeliveryNote() {
   return useMutation({
     mutationFn: (id: string) => deliveryNotesApi.delete(id),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["delivery-notes"] }),
+  });
+}
+
+// ─── Internal parts ────────────────────────────────────────
+export function useInternalParts(params?: Record<string, string>) {
+  return useQuery({
+    queryKey: queryKeys.internalParts(params),
+    queryFn: () => internalPartsApi.getAll(params),
+  });
+}
+
+export function useInternalPart(id: string) {
+  return useQuery({
+    queryKey: queryKeys.internalPart(id),
+    queryFn: () => internalPartsApi.getById(id),
+    enabled: !!id,
+  });
+}
+
+export function useCreateInternalPart() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: unknown) => internalPartsApi.create(data),
+    onSuccess: () => qc.invalidateQueries({queryKey: ["internal-parts"]}),
+  });
+}
+
+export function useUpdateInternalPart() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({id, data}: {id: string; data: unknown}) =>
+      internalPartsApi.update(id, data),
+    onSuccess: () => qc.invalidateQueries({queryKey: ["internal-parts"]}),
+  });
+}
+
+export function useDeleteInternalPart() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => internalPartsApi.delete(id),
+    onSuccess: () => qc.invalidateQueries({queryKey: ["internal-parts"]}),
+  });
+}
+
+// ─── Proformas ─────────────────────────────────────────────
+export function useProformas(params?: Record<string, string>, enabled = true) {
+  return useQuery({
+    queryKey: queryKeys.proformas(params),
+    queryFn: () => proformasApi.getAll(params),
+    enabled,
+  });
+}
+
+export function useProforma(id: string) {
+  return useQuery({
+    queryKey: queryKeys.proforma(id),
+    queryFn: () => proformasApi.getById(id),
+    enabled: !!id,
+  });
+}
+
+export function usePreviewProforma() {
+  return useMutation({
+    mutationFn: (data: unknown) => proformasApi.preview(data),
+  });
+}
+
+export function useCreateProforma() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: unknown) => proformasApi.create(data),
+    onSuccess: () => qc.invalidateQueries({queryKey: ["proformas"]}),
+  });
+}
+
+export function useUpdateProforma() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({id, data}: {id: string; data: unknown}) => proformasApi.update(id, data),
+    onSuccess: () => qc.invalidateQueries({queryKey: ["proformas"]}),
+  });
+}
+
+export function useDeleteProforma() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => proformasApi.delete(id),
+    onSuccess: () => qc.invalidateQueries({queryKey: ["proformas"]}),
   });
 }
 

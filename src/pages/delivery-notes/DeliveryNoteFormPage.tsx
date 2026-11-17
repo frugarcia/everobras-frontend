@@ -5,7 +5,7 @@ import {
   IconCirclePlus,
   IconDeviceFloppy,
   IconEdit,
-  IconList,
+  IconFileInvoice,
   IconPlus,
   IconTrash,
 } from "@tabler/icons-react";
@@ -14,8 +14,14 @@ import ButtonBordered from "@/components/ButtonBordered";
 import ButtonTable from "@/components/ButtonTable";
 import GoBackTitle from "@/components/GoBackTitle";
 import Loader from "@/components/Loader";
-import {AppInput} from "@/components/ui/app-input";
+import {AppCombobox} from "@/components/ui/app-combobox";
+import {AppInput, AppTextarea} from "@/components/ui/app-input";
 import {AppSelect} from "@/components/ui/app-select";
+import {ProjectForm} from "@/pages/maintenance/ProjectsPage";
+import {WorkerForm} from "@/pages/maintenance/WorkersPage";
+import {VehicleForm} from "@/pages/maintenance/VehiclesPage";
+import {SupplierForm} from "@/pages/maintenance/SuppliersPage";
+import {AttachmentField} from "@/components/AttachmentField";
 import {Card, CardContent, CardFooter} from "@/components/ui/card";
 import {
   useProjects,
@@ -23,65 +29,63 @@ import {
   useMaterials,
   useServices,
   useVehicles,
+  useSuppliers,
   useDeliveryNote,
   useCreateDeliveryNote,
   useUpdateDeliveryNote,
 } from "@/hooks/useQueries";
 import {getErrorMessage} from "@/lib/errors";
-
-const UNIT_TYPES = [
-  "TONELADAS",
-  "M2",
-  "M3",
-  "PORTES",
-  "HORAS",
-  "VIAJES",
-] as const;
-
-const TYPE_OPTIONS = [
-  {value: "INTERNO", label: "Interno"},
-  {value: "EXTERNO", label: "Externo"},
-];
+import DeliveryNoteLines from "./DeliveryNoteLines";
+import {
+  EMPTY_NOTE_LINE,
+  toPayloadLines,
+  type NoteLine,
+} from "./noteLines";
 
 const SIGNED_OPTIONS = [
   {value: "true", label: "Sí"},
   {value: "false", label: "No"},
 ];
 
-const UNIT_TYPE_OPTIONS = UNIT_TYPES.map((u) => ({value: u, label: u}));
-
-interface Line {
-  materialId: string | null;
-  serviceId: string | null;
-  unitType: string;
-  quantity: number;
-  price: number;
+interface PurchaseNote {
+  supplierId: string;
+  number: string;
+  date: string;
+  attachmentKey: string | null;
+  attachmentName: string | null;
+  lines: NoteLine[];
 }
 
-const EMPTY_LINE: Line = {
-  materialId: null,
-  serviceId: null,
-  unitType: "HORAS",
-  quantity: 1,
-  price: 0,
-};
+function emptyPurchaseNote(): PurchaseNote {
+  return {
+    supplierId: "",
+    number: "",
+    date: new Date().toISOString().split("T")[0],
+    attachmentKey: null,
+    attachmentName: null,
+    lines: [EMPTY_NOTE_LINE],
+  };
+}
 
 export default function DeliveryNoteFormPage() {
   const {id} = useParams();
   const navigate = useNavigate();
   const isEdit = Boolean(id);
 
-  const [type, setType] = useState("INTERNO");
-  const [internalNumber, setInternalNumber] = useState("");
-  const [externalNumber, setExternalNumber] = useState("");
+  const [number, setNumber] = useState("");
   const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
   const [signed, setSigned] = useState("false");
   const [projectId, setProjectId] = useState("");
   const [workerId, setWorkerId] = useState("");
   const [vehicleId, setVehicleId] = useState<string | null>(null);
   const [vehicleText, setVehicleText] = useState("");
+  const [observations, setObservations] = useState("");
+  const [attachmentKey, setAttachmentKey] = useState<string | null>(null);
+  const [attachmentName, setAttachmentName] = useState<string | null>(null);
+  const [pendingUploads, setPendingUploads] = useState(0);
   const [isManualVehicle, setIsManualVehicle] = useState(false);
-  const [lines, setLines] = useState<Line[]>([EMPTY_LINE]);
+  const [lines, setLines] = useState<NoteLine[]>([EMPTY_NOTE_LINE]);
+  const [purchaseNotes, setPurchaseNotes] = useState<PurchaseNote[]>([]);
   const [formReady, setFormReady] = useState(!isEdit);
 
   const {data: projectsResult} = useProjects({limit: 9999});
@@ -89,6 +93,7 @@ export default function DeliveryNoteFormPage() {
   const {data: materialsResult} = useMaterials({limit: 9999});
   const {data: servicesResult} = useServices({limit: 9999});
   const {data: vehiclesResult} = useVehicles({limit: 9999});
+  const {data: suppliersResult} = useSuppliers({limit: 9999});
   const {data: existingNote} = useDeliveryNote(id ?? "");
 
   const projectOptions = (projectsResult?.data ?? []).map(
@@ -127,29 +132,41 @@ export default function DeliveryNoteFormPage() {
       label: s.name,
     })),
   ];
+  const supplierOptions = (suppliersResult?.data ?? []).map(
+    (s: {id: string; commercialName: string; cif: string}) => ({
+      value: s.id,
+      label: `${s.commercialName} (${s.cif})`,
+    }),
+  );
 
   const createMutation = useCreateDeliveryNote();
   const updateMutation = useUpdateDeliveryNote();
   const isPending = createMutation.isPending || updateMutation.isPending;
 
-  // Rellenar el formulario al editar
   useEffect(() => {
     if (isEdit && existingNote) {
       const note = existingNote as {
-        type: string;
-        internalNumber: string;
-        externalNumber: string;
+        number: string | null;
         date: string;
         signed: boolean;
         projectId: string;
         workerId: string;
         vehicleId: string | null;
         vehicleText: string | null;
-        lines: Line[];
+        observations: string | null;
+        attachmentKey: string | null;
+        attachmentName: string | null;
+        lines: NoteLine[];
+        purchaseNotes: {
+          supplierId: string;
+          number: string | null;
+          date: string;
+          attachmentKey: string | null;
+          attachmentName: string | null;
+          lines: NoteLine[];
+        }[];
       };
-      setType(note.type);
-      setInternalNumber(note.internalNumber ?? "");
-      setExternalNumber(note.externalNumber ?? "");
+      setNumber(note.number ?? "");
       setDate(note.date.split("T")[0]);
       setSigned(note.signed ? "true" : "false");
       setProjectId(note.projectId);
@@ -161,33 +178,37 @@ export default function DeliveryNoteFormPage() {
         setVehicleText(note.vehicleText);
         setIsManualVehicle(true);
       }
+      setObservations(note.observations ?? "");
+      setAttachmentKey(note.attachmentKey);
+      setAttachmentName(note.attachmentName);
       setLines(
-        note.lines.map((l) => ({
-          materialId: l.materialId,
-          serviceId: l.serviceId,
-          unitType: l.unitType,
-          quantity: l.quantity,
-          price: l.price,
+        note.lines.map((line) => ({
+          materialId: line.materialId,
+          serviceId: line.serviceId,
+          unitType: line.unitType,
+          quantity: line.quantity,
+          price: line.price,
+        })),
+      );
+      setPurchaseNotes(
+        (note.purchaseNotes ?? []).map((purchase) => ({
+          supplierId: purchase.supplierId,
+          number: purchase.number ?? "",
+          date: purchase.date.split("T")[0],
+          attachmentKey: purchase.attachmentKey,
+          attachmentName: purchase.attachmentName,
+          lines: purchase.lines.map((line) => ({
+            materialId: line.materialId,
+            serviceId: line.serviceId,
+            unitType: line.unitType,
+            quantity: line.quantity,
+            price: line.price,
+          })),
         })),
       );
       setFormReady(true);
     }
   }, [isEdit, existingNote]);
-
-  const addLine = () => setLines([...lines, EMPTY_LINE]);
-
-  const removeLine = (index: number) =>
-    setLines(lines.filter((_, i) => i !== index));
-
-  const updateLine = (
-    index: number,
-    field: keyof Line,
-    value: string | number | null,
-  ) => {
-    setLines(
-      lines.map((line, i) => (i === index ? {...line, [field]: value} : line)),
-    );
-  };
 
   const handleVehicleChange = (v: string) => {
     if (v === "__manual__") {
@@ -204,24 +225,42 @@ export default function DeliveryNoteFormPage() {
     }
   };
 
+  const updatePurchaseNote = (index: number, patch: Partial<PurchaseNote>) => {
+    setPurchaseNotes(
+      purchaseNotes.map((note, i) => (i === index ? {...note, ...patch} : note)),
+    );
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (purchaseNotes.some((note) => !note.supplierId)) {
+      toast.error("Cada albarán de compra necesita un proveedor");
+      return;
+    }
+    if (pendingUploads > 0) {
+      toast.error("Espera a que termine la subida del archivo");
+      return;
+    }
+
     const payload = {
-      type,
-      internalNumber: internalNumber || null,
-      externalNumber: externalNumber || null,
+      number: number.trim() || null,
       date,
       signed: signed === "true",
       projectId,
       workerId,
       vehicleId: !isManualVehicle ? vehicleId : null,
       vehicleText: isManualVehicle ? vehicleText || null : null,
-      lines: lines.map((l) => ({
-        materialId: l.materialId || null,
-        serviceId: l.serviceId || null,
-        unitType: l.unitType,
-        quantity: Number(l.quantity),
-        price: Number(l.price),
+      observations: observations.trim() || null,
+      attachmentKey,
+      attachmentName,
+      lines: toPayloadLines(lines),
+      purchaseNotes: purchaseNotes.map((note) => ({
+        supplierId: note.supplierId,
+        number: note.number.trim() || null,
+        date: note.date,
+        attachmentKey: note.attachmentKey,
+        attachmentName: note.attachmentName,
+        lines: toPayloadLines(note.lines),
       })),
     };
 
@@ -243,7 +282,7 @@ export default function DeliveryNoteFormPage() {
     <div className="flex flex-col gap-4">
       <GoBackTitle
         icon={isEdit ? <IconEdit /> : <IconCirclePlus />}
-        title={isEdit ? "Editar albarán" : "Añadir nuevo albarán"}
+        title={isEdit ? "Editar albarán de venta" : "Añadir nuevo albarán de venta"}
       />
 
       {!formReady ? (
@@ -252,24 +291,11 @@ export default function DeliveryNoteFormPage() {
         <form noValidate onSubmit={handleSubmit}>
           <Card className="p-4">
             <CardContent className="flex flex-col gap-6">
-              {/* Cabecera */}
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                <AppSelect
-                  label="Tipo"
-                  isRequired
-                  options={TYPE_OPTIONS}
-                  value={type}
-                  onChange={(v) => setType(v || "INTERNO")}
-                />
                 <AppInput
-                  label="Nº albarán interno"
-                  value={internalNumber}
-                  onChange={(e) => setInternalNumber(e.target.value)}
-                />
-                <AppInput
-                  label="Nº albarán externo"
-                  value={externalNumber}
-                  onChange={(e) => setExternalNumber(e.target.value)}
+                  label="Nº albarán"
+                  value={number}
+                  onChange={(e) => setNumber(e.target.value)}
                 />
                 <AppInput
                   label="Fecha"
@@ -278,21 +304,37 @@ export default function DeliveryNoteFormPage() {
                   value={date}
                   onChange={(e) => setDate(e.target.value)}
                 />
-                <AppSelect
+                <AppCombobox
                   label="Obra"
                   isRequired
                   placeholder="Seleccionar obra"
                   options={projectOptions}
                   value={projectId}
                   onChange={setProjectId}
+                  createLabel="Añadir nueva obra"
+                  renderCreateForm={(close) => (
+                    <ProjectForm
+                      item={null}
+                      onClose={close}
+                      onCreated={setProjectId}
+                    />
+                  )}
                 />
-                <AppSelect
+                <AppCombobox
                   label="Operario"
                   isRequired
                   placeholder="Seleccionar operario"
                   options={workerOptions}
                   value={workerId}
                   onChange={setWorkerId}
+                  createLabel="Añadir nuevo operario"
+                  renderCreateForm={(close) => (
+                    <WorkerForm
+                      item={null}
+                      onClose={close}
+                      onCreated={setWorkerId}
+                    />
+                  )}
                 />
                 <AppSelect
                   label="Firmado"
@@ -300,13 +342,19 @@ export default function DeliveryNoteFormPage() {
                   value={signed}
                   onChange={(v) => setSigned(v || "false")}
                 />
-                <AppSelect
+                <AppCombobox
                   label="Vehículo"
                   options={vehicleOptions}
-                  value={
-                    isManualVehicle ? "__manual__" : (vehicleId ?? "none")
-                  }
+                  value={isManualVehicle ? "__manual__" : (vehicleId ?? "none")}
                   onChange={handleVehicleChange}
+                  createLabel="Añadir nuevo vehículo"
+                  renderCreateForm={(close) => (
+                    <VehicleForm
+                      item={null}
+                      onClose={close}
+                      onCreated={handleVehicleChange}
+                    />
+                  )}
                 />
                 {isManualVehicle && (
                   <AppInput
@@ -316,96 +364,136 @@ export default function DeliveryNoteFormPage() {
                     onChange={(e) => setVehicleText(e.target.value)}
                   />
                 )}
+                <div className="sm:col-span-2 lg:col-span-3">
+                  <AppTextarea
+                    label="Observaciones"
+                    placeholder="Añadir observaciones"
+                    value={observations}
+                    onChange={(e) => setObservations(e.target.value)}
+                  />
+                </div>
+                <div className="sm:col-span-2 lg:col-span-3">
+                  <AttachmentField
+                    folder="delivery-notes"
+                    fileKey={attachmentKey}
+                    fileName={attachmentName}
+                    onChange={({key, fileName}) => {
+                      setAttachmentKey(key);
+                      setAttachmentName(fileName);
+                    }}
+                    onBusyChange={(busy) =>
+                      setPendingUploads((count) =>
+                        Math.max(0, count + (busy ? 1 : -1)),
+                      )
+                    }
+                  />
+                </div>
               </div>
 
-              {/* Líneas */}
+              <DeliveryNoteLines
+                lines={lines}
+                materialOptions={materialOptions}
+                serviceOptions={serviceOptions}
+                onChange={setLines}
+              />
+
               <div className="flex flex-col gap-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <IconList size={20} className="text-muted-foreground" />
-                    <h3 className="text-lg font-semibold">Líneas</h3>
+                    <IconFileInvoice size={20} className="text-muted-foreground" />
+                    <h3 className="text-lg font-semibold">Albaranes de compra</h3>
                   </div>
                   <ButtonBordered
-                    label="Añadir línea"
+                    label="Añadir albarán de compra"
                     color="blue-600"
                     startContent={<IconPlus />}
-                    onPress={addLine}
+                    onPress={() =>
+                      setPurchaseNotes([...purchaseNotes, emptyPurchaseNote()])
+                    }
                   />
                 </div>
-                {lines.map((line, i) => (
+                <p className="text-sm text-muted-foreground">
+                  La obra y el operario son los del albarán de venta.
+                </p>
+                {purchaseNotes.map((purchase, index) => (
                   <div
-                    key={i}
-                    className="grid items-end gap-3 rounded-lg bg-muted p-3 sm:grid-cols-[2fr_2fr_1fr_1fr_1fr_auto]"
+                    key={index}
+                    className="flex flex-col gap-4 rounded-lg border p-4"
                   >
-                    <AppSelect
-                      label="Material"
-                      options={materialOptions}
-                      value={line.materialId ?? "none"}
-                      onChange={(v) =>
-                        updateLine(
-                          i,
-                          "materialId",
-                          v === "none" || !v ? null : v,
-                        )
-                      }
-                      triggerClassName="bg-background"
-                    />
-                    <AppSelect
-                      label="Servicio"
-                      options={serviceOptions}
-                      value={line.serviceId ?? "none"}
-                      onChange={(v) =>
-                        updateLine(
-                          i,
-                          "serviceId",
-                          v === "none" || !v ? null : v,
-                        )
-                      }
-                      triggerClassName="bg-background"
-                    />
-                    <AppSelect
-                      label="Tipo unidad"
-                      options={UNIT_TYPE_OPTIONS}
-                      value={line.unitType}
-                      onChange={(v) => updateLine(i, "unitType", v || "HORAS")}
-                      triggerClassName="bg-background"
-                    />
-                    <AppInput
-                      label="Cantidad"
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      className="bg-background"
-                      value={line.quantity}
-                      onChange={(e) =>
-                        updateLine(
-                          i,
-                          "quantity",
-                          parseFloat(e.target.value) || 0,
-                        )
-                      }
-                    />
-                    <AppInput
-                      label="Precio (€)"
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      className="bg-background"
-                      value={line.price}
-                      onChange={(e) =>
-                        updateLine(i, "price", parseFloat(e.target.value) || 0)
-                      }
-                    />
-                    <div className="flex h-9 items-center justify-center">
+                    <div className="flex items-center justify-between gap-3">
+                      <h4 className="font-semibold">
+                        Albarán de compra {index + 1}
+                      </h4>
                       <ButtonTable
-                        tooltip="Eliminar línea"
-                        isDisabled={lines.length <= 1}
-                        icon={
-                          <IconTrash size={20} className="stroke-red-600" />
+                        tooltip="Quitar albarán de compra"
+                        icon={<IconTrash size={20} className="stroke-red-600" />}
+                        onClick={() =>
+                          setPurchaseNotes(
+                            purchaseNotes.filter((_, i) => i !== index),
+                          )
                         }
-                        onClick={() => removeLine(i)}
                       />
                     </div>
+                    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                      <AppCombobox
+                        label="Proveedor"
+                        isRequired
+                        placeholder="Seleccionar proveedor"
+                        options={supplierOptions}
+                        value={purchase.supplierId}
+                        onChange={(value) =>
+                          updatePurchaseNote(index, {supplierId: value})
+                        }
+                        createLabel="Añadir nuevo proveedor"
+                        renderCreateForm={(close) => (
+                          <SupplierForm
+                            item={null}
+                            onClose={close}
+                            onCreated={(id) =>
+                              updatePurchaseNote(index, {supplierId: id})
+                            }
+                          />
+                        )}
+                      />
+                      <AppInput
+                        label="Nº albarán"
+                        value={purchase.number}
+                        onChange={(e) =>
+                          updatePurchaseNote(index, {number: e.target.value})
+                        }
+                      />
+                      <AppInput
+                        label="Fecha"
+                        type="date"
+                        isRequired
+                        value={purchase.date}
+                        onChange={(e) =>
+                          updatePurchaseNote(index, {date: e.target.value})
+                        }
+                      />
+                    </div>
+                    <AttachmentField
+                      folder="purchase-notes"
+                      fileKey={purchase.attachmentKey}
+                      fileName={purchase.attachmentName}
+                      onChange={({key, fileName}) =>
+                        updatePurchaseNote(index, {
+                          attachmentKey: key,
+                          attachmentName: fileName,
+                        })
+                      }
+                      onBusyChange={(busy) =>
+                        setPendingUploads((count) =>
+                          Math.max(0, count + (busy ? 1 : -1)),
+                        )
+                      }
+                    />
+                    <DeliveryNoteLines
+                      lines={purchase.lines}
+                      materialOptions={materialOptions}
+                      serviceOptions={serviceOptions}
+                      onChange={(next) => updatePurchaseNote(index, {lines: next})}
+                    />
                   </div>
                 ))}
               </div>
@@ -425,7 +513,9 @@ export default function DeliveryNoteFormPage() {
                   type="submit"
                   startContent={<IconDeviceFloppy />}
                   isLoading={isPending}
-                  isDisabled={isPending || !projectId || !workerId}
+                  isDisabled={
+                    isPending || pendingUploads > 0 || !projectId || !workerId
+                  }
                 />
               </div>
             </CardFooter>

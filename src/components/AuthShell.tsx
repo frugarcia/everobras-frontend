@@ -10,7 +10,8 @@ import {
 import Logo from "@/components/Logo";
 
 const FEATURES = [
-  "Gestión de albaranes internos y externos",
+  "Albaranes de venta y albaranes de compra",
+  "Partes internos de maquinaria y de camiones",
   "Clientes, obras y operarios en un solo lugar",
   "Control de albaranes firmados y pendientes",
 ];

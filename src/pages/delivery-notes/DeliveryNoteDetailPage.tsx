@@ -9,6 +9,7 @@ import {IconEdit, IconFileText, IconList} from "@tabler/icons-react";
 import ButtonBordered from "@/components/ButtonBordered";
 import GoBackTitle from "@/components/GoBackTitle";
 import ItemCard from "@/components/ItemCard";
+import {ScanLink} from "@/components/AttachmentField";
 import RenderWhenLoad from "@/components/RenderWhenLoad";
 import Table from "@/components/Table";
 import {Badge} from "@/components/ui/badge";
@@ -24,19 +25,31 @@ interface DeliveryNoteLine {
   price: number;
 }
 
+interface PurchaseNote {
+  id: string;
+  number: string | null;
+  date: string;
+  attachmentKey: string | null;
+  attachmentName: string | null;
+  supplier: {commercialName: string; legalName: string; cif: string};
+  lines: DeliveryNoteLine[];
+}
+
 interface DeliveryNote {
   id: string;
-  type: string;
-  internalNumber: string | null;
-  externalNumber: string | null;
+  number: string | null;
   date: string;
   signed: boolean;
+  attachmentKey: string | null;
+  attachmentName: string | null;
   imageUrl: string | null;
   vehicle: {id: string; name: string; plate: string} | null;
   vehicleText: string | null;
+  observations: string | null;
   project: {name: string; customer: {name: string}};
   worker: {firstName: string; lastName: string};
   lines: DeliveryNoteLine[];
+  purchaseNotes: PurchaseNote[];
   createdAt: string;
   updatedAt: string;
   createdBy: {id: string; name: string} | null;
@@ -88,6 +101,55 @@ const lineColumns: ColumnDef<DeliveryNoteLine, unknown>[] = [
   },
 ];
 
+function PurchaseNoteBlock({note}: {note: PurchaseNote}) {
+  const table = useReactTable({
+    data: note.lines,
+    columns: lineColumns,
+    getCoreRowModel: getCoreRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+    enableSorting: false,
+    initialState: {pagination: {pageSize: 50}},
+  });
+  const total = note.lines.reduce((sum, line) => sum + line.quantity * line.price, 0);
+
+  return (
+    <div className="flex flex-col gap-3 rounded-lg border p-4">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        <ItemCard
+          label="Proveedor"
+          value={`${note.supplier.commercialName} (${note.supplier.cif})`}
+        />
+        <ItemCard label="Nº albarán" value={note.number ?? "—"} />
+        <ItemCard
+          label="Fecha"
+          value={new Date(note.date).toLocaleDateString("es-ES")}
+        />
+        <ItemCard
+          label="Escaneo"
+          value={
+            note.attachmentKey ? (
+              <ScanLink
+                fileKey={note.attachmentKey}
+                fileName={note.attachmentName ?? "Escaneo"}
+              />
+            ) : (
+              "—"
+            )
+          }
+        />
+      </div>
+      <Table title="Líneas del albarán de compra" config={table} />
+      <div className="flex justify-end">
+        <ItemCard
+          className="min-w-48 text-right"
+          label="Total albarán de compra"
+          value={<span className="text-lg">{euros(total)}</span>}
+        />
+      </div>
+    </div>
+  );
+}
+
 export default function DeliveryNoteDetailPage() {
   const {id = ""} = useParams();
   const navigate = useNavigate();
@@ -111,8 +173,8 @@ export default function DeliveryNoteDetailPage() {
       <div className="flex flex-wrap items-center justify-between gap-4">
         <GoBackTitle
           icon={<IconFileText />}
-          title={`Albarán ${note?.internalNumber ?? ""}`.trim()}
-          subtitle="Detalle del albarán"
+          title={`Albarán de venta ${note?.number ?? ""}`.trim()}
+          subtitle="Detalle del albarán de venta"
         />
         {note ? (
           <ButtonBordered
@@ -130,25 +192,19 @@ export default function DeliveryNoteDetailPage() {
             <Card>
               <CardContent>
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+                  <ItemCard label="Nº albarán" value={note.number ?? "—"} />
                   <ItemCard
-                    label="Tipo"
+                    label="Escaneo"
                     value={
-                      <Badge
-                        variant={
-                          note.type === "INTERNO" ? "secondary" : "outline"
-                        }
-                      >
-                        {note.type}
-                      </Badge>
+                      note.attachmentKey ? (
+                        <ScanLink
+                          fileKey={note.attachmentKey}
+                          fileName={note.attachmentName ?? "Escaneo"}
+                        />
+                      ) : (
+                        "—"
+                      )
                     }
-                  />
-                  <ItemCard
-                    label="Nº interno"
-                    value={note.internalNumber ?? "—"}
-                  />
-                  <ItemCard
-                    label="Nº externo"
-                    value={note.externalNumber ?? "—"}
                   />
                   <ItemCard
                     label="Fecha"
@@ -180,6 +236,15 @@ export default function DeliveryNoteDetailPage() {
                     }
                   />
                   <ItemCard
+                    className="md:col-span-2 lg:col-span-3"
+                    label="Observaciones"
+                    value={
+                      <span className="font-normal whitespace-pre-wrap">
+                        {note.observations?.trim() || "—"}
+                      </span>
+                    }
+                  />
+                  <ItemCard
                     label="Creado"
                     value={`${formatDateTime(note.createdAt)}${note.createdBy ? ` · ${note.createdBy.name}` : ""}`}
                   />
@@ -199,10 +264,19 @@ export default function DeliveryNoteDetailPage() {
             <div className="flex justify-end">
               <ItemCard
                 className="min-w-48 text-right"
-                label="Total albarán"
+                label="Total albarán de venta"
                 value={<span className="text-lg">{euros(total)}</span>}
               />
             </div>
+
+            {note.purchaseNotes.length > 0 ? (
+              <div className="flex flex-col gap-3">
+                <h3 className="text-lg font-semibold">Albaranes de compra</h3>
+                {note.purchaseNotes.map((purchase) => (
+                  <PurchaseNoteBlock key={purchase.id} note={purchase} />
+                ))}
+              </div>
+            ) : null}
           </div>
         ) : null}
       </RenderWhenLoad>
